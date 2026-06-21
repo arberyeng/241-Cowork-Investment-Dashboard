@@ -1,0 +1,2183 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arasaka Epsilon All-Equity Regime Fund | Institutional Dashboard</title>
+  <link rel="icon" type="image/png" href="AYPL Logo.png" />
+
+  <!-- ─── External Dependencies ─────────────────────────────────────── -->
+  <!-- Tailwind CSS (CDN play build — utility classes only) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for all data visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Google Fonts: JetBrains Mono for terminal feel, Inter for body copy -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- ─── Theme & Global Styles ─────────────────────────────────────── -->
+  <style>
+    /* ── Design Tokens ──────────────────────────────────────────────── */
+    :root {
+      --bg-base:        #0a0d0f;   /* near-black base */
+      --bg-surface:     #111518;   /* card/panel surface */
+      --bg-elevated:    #181d22;   /* hover/active surface */
+      --border:         #1f2933;   /* subtle dividers */
+      --green-primary:  #22c55e;   /* neon green accent */
+      --green-dim:      #16a34a;
+      --green-glow:     rgba(34, 197, 94, 0.18);
+      --text-primary:   #e8eaed;
+      --text-secondary: #8a9bb0;
+      --text-muted:     #4a5568;
+      --red-accent:     #ef4444;
+      --amber-accent:   #f59e0b;
+    }
+
+    /* ── Base ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+      min-height: 100vh;
+      /* subtle grid texture */
+      background-image: linear-gradient(rgba(34,197,94,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(34,197,94,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── Typography helpers ─────────────────────────────────────────── */
+    .font-mono   { font-family: 'JetBrains Mono', monospace; }
+    .text-green  { color: var(--green-primary); }
+    .text-muted  { color: var(--text-secondary); }
+    .text-dimmed { color: var(--text-muted); }
+    .text-red    { color: var(--red-accent); }
+    .text-amber  { color: var(--amber-accent); }
+
+    /* ── Surface / Card ─────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .card-elevated {
+      background: var(--bg-elevated);
+    }
+
+    /* ── Glassmorphism metric blocks ────────────────────────────────── */
+    .metric-card {
+      background: linear-gradient(135deg, rgba(24,29,34,0.9), rgba(17,21,24,0.95));
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 10px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 18px rgba(34,197,94,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .metric-card:hover {
+      border-color: rgba(34,197,94,0.45);
+      box-shadow: 0 0 28px rgba(34,197,94,0.18);
+    }
+
+    /* ── Neon green glow on text ────────────────────────────────────── */
+    .glow {
+      text-shadow: 0 0 10px rgba(34,197,94,0.7), 0 0 22px rgba(34,197,94,0.4);
+    }
+
+    /* ── Ticker tape ────────────────────────────────────────────────── */
+    .ticker-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+      background: rgba(17,21,24,0.95);
+      border-bottom: 1px solid var(--border);
+      position: relative;          /* anchor for the floating status badge */
+      display: flex;
+      align-items: center;
+    }
+    /* Status badge sits at the left edge as a sticky opaque layer.
+       The scrolling track starts after it and never overlaps it. */
+    .ticker-status-badge {
+      flex-shrink: 0;              /* never squished by the track */
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px 0 12px;
+      height: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      border-right: 1px solid var(--border);
+      background: rgba(17,21,24,0.98);  /* same as wrap — masks the track */
+      z-index: 10;
+      transition: color 0.4s;
+    }
+    .ticker-status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.4s, box-shadow 0.4s;
+    }
+    .ticker-track {
+      display: inline-block;
+      animation: ticker-scroll 40s linear infinite;
+    }
+    .ticker-track:hover { animation-play-state: paused; }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    /* Pulse animation for the live dot when market is open */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+    .dot-pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+    /* ── Holding grid cards ─────────────────────────────────────────── */
+    .holding-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .holding-card:hover {
+      transform: scale(1.02);
+      border-color: rgba(34,197,94,0.4);
+      box-shadow: 0 0 15px rgba(34,197,94,0.25);
+    }
+    .holding-card.active {
+      border-color: var(--green-primary);
+      box-shadow: 0 0 20px rgba(34,197,94,0.35);
+    }
+
+    /* ── Drill-down panel ───────────────────────────────────────────── */
+    .drill-panel {
+      background: var(--bg-surface);
+      border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 10px;
+      box-shadow: 0 0 30px rgba(34,197,94,0.1);
+    }
+
+    /* ── Tab buttons ────────────────────────────────────────────────── */
+    .tab-btn {
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color 0.15s, border-color 0.15s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab-btn:hover  { color: var(--text-primary); }
+    .tab-btn.active { color: var(--green-primary); border-bottom-color: var(--green-primary); }
+
+    /* ── Timeframe switcher buttons ─────────────────────────────────── */
+    .tf-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.07em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(31,41,51,0.8);
+      background: var(--bg-base);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tf-btn:hover { color: var(--text-primary); border-color: rgba(34,197,94,0.35); }
+    .tf-btn.tf-active { color: var(--green-primary); border-color: var(--green-primary); }
+
+    /* ── Scrollbar styling ──────────────────────────────────────────── */
+    ::-webkit-scrollbar       { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ── Terms Modal ────────────────────────────────────────────────── */
+    #terms-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #terms-modal {
+      background: var(--bg-surface);
+      border: 1px solid rgba(34,197,94,0.35);
+      border-radius: 12px;
+      box-shadow: 0 0 60px rgba(34,197,94,0.14), 0 0 120px rgba(0,0,0,0.8);
+      max-width: 680px; width: 100%;
+      max-height: 88vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    #terms-header {
+      padding: 24px 28px 18px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #terms-body {
+      padding: 22px 28px;
+      overflow-y: auto;
+      flex: 1;
+      font-size: 13px; line-height: 1.85;
+      color: var(--text-secondary);
+    }
+    #terms-body h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--green-primary); margin: 22px 0 8px;
+    }
+    #terms-body h3:first-child { margin-top: 0; }
+    #terms-body hr {
+      border: none; border-top: 1px solid var(--border);
+      margin: 18px 0;
+    }
+    #terms-body p { margin: 0 0 10px; }
+    #terms-footer {
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end;
+      flex-shrink: 0;
+      background: rgba(10,13,15,0.65);
+    }
+    .terms-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 9px 20px; border-radius: 6px;
+      cursor: pointer; border: 1px solid;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    #btn-decline-terms {
+      color: var(--red-accent);
+      background: rgba(239,68,68,0.07);
+      border-color: rgba(239,68,68,0.3);
+    }
+    #btn-decline-terms:hover {
+      background: rgba(239,68,68,0.18);
+      border-color: rgba(239,68,68,0.65);
+    }
+    #btn-accept-terms {
+      color: var(--bg-base);
+      background: var(--green-primary);
+      border-color: var(--green-primary);
+      box-shadow: 0 0 14px rgba(34,197,94,0.35);
+    }
+    #btn-accept-terms:hover {
+      background: #16a34a; border-color: #16a34a;
+      box-shadow: 0 0 22px rgba(34,197,94,0.55);
+    }
+
+    /* ── Allocation segmented control tabs ─────────────────────────── */
+    .alloc-tab {
+      flex: 1;
+      padding: 7px 8px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      transition: background 0.2s ease, color 0.18s ease, box-shadow 0.2s ease;
+      background: transparent;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .alloc-tab-active {
+      background: var(--green-primary);
+      color: var(--bg-base);
+      box-shadow: 0 0 12px var(--green-glow);
+    }
+
+    /* ── Utility ────────────────────────────────────────────────────── */
+    .divider { border-color: var(--border); }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+    .badge-green  { background: rgba(34,197,94,0.12);  color: var(--green-primary); }
+    .badge-amber  { background: rgba(245,158,11,0.12); color: var(--amber-accent); }
+    .badge-blue   { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    .badge-purple { background: rgba(167,139,250,0.12); color: #a78bfa; }
+    .badge-rose   { background: rgba(251,113,133,0.12); color: #fb7185; }
+    .badge-slate  { background: rgba(100,116,139,0.12); color: #94a3b8; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       TERMS & CONDITIONS MODAL — shown on every page load
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="terms-overlay">
+    <div id="terms-modal">
+
+      <!-- Header -->
+      <div id="terms-header">
+        <div class="flex items-center gap-3 mb-2">
+          <!-- Small logo mark -->
+          <svg viewBox="0 0 100 100" width="22" height="22" xmlns="http://www.w3.org/2000/svg"
+               style="color:var(--green-primary);flex-shrink:0;
+                      filter:drop-shadow(0 0 5px rgba(34,197,94,0.7));">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="7.5"/>
+            <rect x="45" y="34" width="10" height="50" rx="5" fill="currentColor"/>
+            <path d="M48 59 Q37 55 27 51" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+            <path d="M52 59 Q63 55 73 51" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+            <circle cx="50" cy="22" r="13" fill="currentColor"/>
+            <circle cx="24" cy="51" r="12" fill="currentColor"/>
+            <circle cx="76" cy="51" r="12" fill="currentColor"/>
+          </svg>
+          <div class="font-mono text-green" style="font-size:20px; font-weight:700; letter-spacing:0.08em;">ARASAKA ASSET MANAGEMENT CO., LTD.</div>
+        </div>
+        <div class="font-mono" style="font-size:15px; color:var(--text-secondary); letter-spacing:0.05em; font-weight:600;">
+          THE "COMPANY" — EPSILON DIVISION &nbsp;·&nbsp; CORPORATE DISCLOSURE
+        </div>
+        <div class="mt-3 text-sm" style="color:var(--text-secondary); line-height:1.6;">
+          Please read the corporate disclosure below carefully. You must accept its terms before you can proceed to the interactive terminal.
+        </div>
+      </div>
+
+      <!-- Scrollable body -->
+      <div id="terms-body">
+
+        <h3>I. Institutional Exclusions and Solicitation Limitations</h3>
+        <p>None of the information contained in this website constitutes an offer to sell, or a solicitation of an offer to buy or subscribe for, any shares, secure notes, or other corporate securities to the public or retail market.</p>
+        <p>The investment vehicles managed within the Epsilon Division are strictly closed-ended and restricted from common civil or public access. Shares and assets may not be purchased by retail investors, nor may they be held by an "employee benefit plan" within the meaning of the U.S. Employee Retirement Income Security Act of 1974, as amended ("ERISA"), including investors utilizing assets under Section 4975 of the U.S. Internal Revenue Code (the "IRC").</p>
+        <p>No public offering of any shares or asset allocations in the Company is being, or has been, made to the public, and accessing these proprietary sheets from unsanctioned sub-nets or combat zones is strictly prohibited.</p>
+
+        <hr>
+
+        <h3>II. Investment Risk and Capital Volatility</h3>
+        <p>All financial allocation is subject to severe risk. The underlying value of the assets held within the Epsilon Division may go down as well as up. Past performance is a historical artifact and is no guarantee of future returns. Furthermore, there is no guarantee that the market price of the Company's shares will fully reflect their underlying net asset value, or that the Company's core investment objective will be achieved.</p>
+        <p>Potential institutional allocators are advised to seek specialized corporate counsel before making any investment decision and must be fully aware that they may experience a total capital purge, failing to recover the amount originally invested.</p>
+
+        <hr>
+
+        <h3>III. Forward-Looking Theses and Projections</h3>
+        <p>This terminal contains forward-looking statements and predictive algorithms which reflect the current strategic views of the Company with respect to market operations. Investors can identify these forward-looking statements by the use of words such as <em>"believe"</em>, <em>"expect"</em>, <em>"potential"</em>, <em>"predict"</em>, <em>"intend"</em>, <em>"plan"</em>, or other comparable terminology.</p>
+        <p>These statements are inherently vulnerable to systemic shocks, hostile counter-intelligence, and shifting geopolitical variables. Should any assumptions underlying the forward-looking theses contained on this website prove to be incorrect, actual outcomes may differ materially from results projected in these statements. The Company assumes no obligation to update or review any forward-looking statement, whether as a result of new information or future developments.</p>
+
+        <hr>
+
+        <h3>IV. No Warranty and Limitation of Liability</h3>
+        <p>Although the Company has taken reasonable care to ensure that the data streams and analytics contained within this interface are accurate, no representation or warranty, expressed or implied, is made as to its absolute reliability or completeness by the Company or its third-party net infrastructure providers. Opinions expressed on this website are provided strictly for informational purposes and are subject to change without notice.</p>
+        <p>Under no circumstances, including but not limited to corporate negligence or digital sabotage, shall the Company or its affiliates be liable for any direct, special, or consequential financial damages, or neural feedback disruptions, that result from the access or use of, or the inability to access or use, the materials on this website.</p>
+
+        <hr>
+        <p style="font-size:12px; color:var(--text-muted); font-style:italic;">
+          By clicking <strong style="color:var(--green-primary);">Accept and Continue</strong>, your signature is committed to the Arasaka registry. Close out immediately if you do not agree.
+        </p>
+
+      </div>
+
+      <!-- Footer buttons -->
+      <div id="terms-footer">
+        <button id="btn-decline-terms" class="terms-btn"
+                onclick="window.location.href='https://www.google.com'">
+          ✕ &nbsp;Close
+        </button>
+        <button id="btn-accept-terms" class="terms-btn"
+                onclick="document.getElementById('terms-overlay').style.display='none'">
+          ✓ &nbsp;Accept and Continue
+        </button>
+      </div>
+
+    </div>
+  </div>
+  <!-- END TERMS MODAL -->
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       HEADER — Fund identity bar
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <header class="px-6 py-3 flex items-center justify-between"
+          style="border-bottom: 1px solid var(--border); background: rgba(10,13,15,0.97);">
+
+    <div class="flex items-center gap-4">
+      <!-- Arasaka Epsilon logo mark — three-ball tree in ring -->
+      <svg viewBox="0 0 100 100" width="28" height="28" xmlns="http://www.w3.org/2000/svg"
+           style="color:var(--green-primary);flex-shrink:0;
+                  filter:drop-shadow(0 0 6px rgba(34,197,94,0.85)) drop-shadow(0 0 16px rgba(34,197,94,0.45));">
+        <!-- Outer ring -->
+        <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="7.5"/>
+        <!-- Trunk: runs full height through branch junction -->
+        <rect x="45" y="34" width="10" height="50" rx="5" fill="currentColor"/>
+        <!-- Left branch -->
+        <path d="M48 59 Q37 55 27 51" stroke="currentColor" stroke-width="9"
+              stroke-linecap="round" fill="none"/>
+        <!-- Right branch -->
+        <path d="M52 59 Q63 55 73 51" stroke="currentColor" stroke-width="9"
+              stroke-linecap="round" fill="none"/>
+        <!-- Top ball -->
+        <circle cx="50" cy="22" r="13" fill="currentColor"/>
+        <!-- Left ball -->
+        <circle cx="24" cy="51" r="12" fill="currentColor"/>
+        <!-- Right ball -->
+        <circle cx="76" cy="51" r="12" fill="currentColor"/>
+      </svg>
+      <div style="width:1px; height:24px; background:var(--border);"></div>
+      <div>
+        <div class="font-mono text-sm font-semibold" style="color:var(--text-primary);">
+          Arasaka Epsilon All-Equity Regime Fund
+        </div>
+        <div class="font-mono text-xs" style="color:var(--text-secondary);">
+          Arasaka Epsilon LP &middot; Institutional Dashboard &middot; AFM 241
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-6">
+      <!-- Live clock placeholder -->
+      <div id="live-clock" class="font-mono text-xs text-muted">--:--:-- EDT</div>
+      <div class="badge badge-green">ACTIVE</div>
+      <div class="font-mono text-xs text-muted">FY 2024–2025</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       ROW 0 — Animated Ticker Tape
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="ticker-wrap py-2" id="ticker-wrap">
+    <!-- Status badge — always visible, never scrolled over -->
+    <div class="ticker-status-badge" id="ticker-status">
+      <span class="ticker-status-dot" id="ticker-dot"></span>
+      <span id="ticker-label">LOADING</span>
+    </div>
+    <!-- Scrolling track — injected and updated by JS -->
+    <div id="ticker-track" class="ticker-track font-mono text-xs">
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       MAIN CONTENT — padded container
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <main class="px-6 py-5" style="max-width: 1600px; margin: 0 auto;">
+
+    <!-- ─── ROW 1 — Macro Performance Cards ─────────────────────────── -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+
+      <div class="metric-card p-4">
+        <div class="text-xs font-mono text-muted uppercase tracking-widest mb-2">Total Fund AUM</div>
+        <div class="font-mono text-2xl font-bold glow text-green" id="metric-aum">$1,000,000</div>
+        <div class="text-xs text-muted mt-1">Simulated deployment (USD)</div>
+      </div>
+
+      <div class="metric-card p-4">
+        <div class="text-xs font-mono text-muted uppercase tracking-widest mb-2">Active Positions</div>
+        <div class="font-mono text-2xl font-bold glow text-green">8</div>
+        <div class="text-xs text-muted mt-1">Fully deployed equity · v3</div>
+      </div>
+
+      <div class="metric-card p-4">
+        <div class="text-xs font-mono text-muted uppercase tracking-widest mb-2">Total Return Since Inception</div>
+        <div class="font-mono text-base font-bold text-green mt-1" id="metric-inception-ret">—</div>
+        <div class="text-xs text-muted mt-1">Jun &rsquo;25 baseline · updated live</div>
+      </div>
+
+      <div class="metric-card p-4">
+        <div class="text-xs font-mono text-muted uppercase tracking-widest mb-2">Cash Drag</div>
+        <div class="font-mono text-2xl font-bold glow text-green">$1.54</div>
+        <div class="text-xs text-muted mt-1">Uninvested · 0.00015% of AUM</div>
+      </div>
+
+    </div>
+    <!-- END ROW 1 -->
+
+    <!-- ─── ROW 2 — Analytics Split Screen ──────────────────────────── -->
+    <div class="grid gap-4 mb-6" style="grid-template-columns: 60% 1fr;">
+
+      <!-- Left: Performance Backtest Chart -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div id="chart-title" class="text-sm font-semibold" style="color:var(--text-primary);">
+              12-Month Performance
+            </div>
+            <div id="chart-subtitle" class="text-xs text-muted mt-0.5">$1M Starting AUM &middot; Jun '25 – Jun '26</div>
+          </div>
+          <!-- Timeframe switcher -->
+          <div class="flex gap-1">
+            <button class="tf-btn" data-tf="view_1d" onclick="switchTimeframe('view_1d')">1D</button>
+            <button class="tf-btn" data-tf="view_5d" onclick="switchTimeframe('view_5d')">5D</button>
+            <button class="tf-btn" data-tf="view_1m" onclick="switchTimeframe('view_1m')">1M</button>
+            <button class="tf-btn tf-active" data-tf="view_1y" onclick="switchTimeframe('view_1y')">1Y</button>
+          </div>
+        </div>
+        <!-- Legend row -->
+        <div class="flex gap-4 items-center mb-3">
+          <span class="flex items-center gap-1.5 text-xs font-mono">
+            <span style="display:inline-block;width:12px;height:2px;background:var(--green-primary);border-radius:1px;"></span>
+            <span class="text-green">AYLP Fund</span>
+            <span class="font-bold text-green" id="legend-bqm-ret">+26.34%</span>
+          </span>
+          <span class="flex items-center gap-1.5 text-xs font-mono">
+            <span style="display:inline-block;width:14px;height:2px;
+                         background:repeating-linear-gradient(to right,#4a5568 0,#4a5568 4px,transparent 4px,transparent 7px);"></span>
+            <span style="color:var(--text-secondary);">SPY</span>
+            <span style="color:#4a5568;" id="legend-spy-ret">+27.05%</span>
+          </span>
+        </div>
+        <!-- Chart canvas — Chart.js will bind to this -->
+        <div style="height: 280px;">
+          <canvas id="backtest-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Right: Asset Allocation Doughnut — three-view -->
+      <div class="card p-5 flex flex-col">
+
+        <!-- Card header -->
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <div class="text-sm font-semibold" style="color:var(--text-primary);">Asset Allocation</div>
+            <div id="alloc-subtitle" class="text-xs text-muted mt-0.5">8 Holdings · $1,000,000 AUM</div>
+          </div>
+        </div>
+
+        <!-- ── Segmented control ──────────────────────────────────── -->
+        <div class="flex mb-3"
+             style="background:var(--bg-base); border-radius:8px; padding:3px; gap:2px;">
+          <button class="alloc-tab alloc-tab-active" data-view="holdings"
+                  onclick="switchAllocView('holdings')">Individual Holdings</button>
+          <button class="alloc-tab" data-view="sector"
+                  onclick="switchAllocView('sector')">Sector Allocation</button>
+        </div>
+
+        <!-- ── Chart + Legend (side by side) ───────────────────── -->
+        <div style="display:flex; gap:40px; align-items:center; flex:1; min-height:0;">
+
+          <!-- Doughnut with center overlay -->
+          <div style="position:relative; flex-shrink:0; width:196px; height:196px;">
+            <div id="donut-center" class="absolute text-center pointer-events-none z-10"
+                 style="top:50%; left:50%; transform:translate(-50%,-50%); width:110px;">
+              <div id="donut-ticker" class="font-mono font-bold text-green glow"
+                   style="font-size:13px; letter-spacing:0.06em; white-space:nowrap;">AYLP</div>
+              <div id="donut-weight" class="font-mono text-muted"
+                   style="font-size:11px; margin-top:2px; white-space:nowrap;">$1,000,000</div>
+              <div id="donut-sector" class="text-dimmed"
+                   style="font-size:10px; margin-top:2px; line-height:1.3;
+                          overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                8 Holdings
+              </div>
+            </div>
+            <canvas id="allocation-chart"></canvas>
+          </div>
+
+          <!-- Legend -->
+          <div id="alloc-legend"
+               class="font-mono"
+               style="flex:0 0 300px; min-width:0; font-size:11px;
+                      overflow-y:auto; max-height:196px;">
+            <!-- Populated by renderAllocLegend() -->
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+    <!-- END ROW 2 -->
+
+    <!-- ─── ROW 3 — Holding Cards Grid ──────────────────────────────── -->
+    <div class="mb-4">
+      <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3">
+        Portfolio Holdings · Click to Drill Down
+      </div>
+      <!-- 10-card grid: 5 cols on large screens, 2 on mobile -->
+      <div id="holdings-grid" class="grid gap-3"
+           style="grid-template-columns: repeat(4, 1fr);">
+        <!-- Holding cards injected by JS -->
+        <div class="holding-card p-4 text-center text-muted text-xs font-mono">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ─── ROW 4 — Drill-Down Detail Panel ─────────────────────────── -->
+    <div id="drill-panel" class="drill-panel mt-2" style="display:none; overflow:hidden;">
+
+      <!-- Panel header ──────────────────────────────────────────────── -->
+      <div class="flex items-center justify-between px-5 pt-5 pb-4"
+           style="border-bottom:1px solid var(--border);">
+        <div class="flex items-center gap-3">
+          <!-- Logo in header -->
+          <div id="dp-logo-wrap"
+               style="width:44px; height:44px; border-radius:50%; overflow:hidden;
+                      background:#ffffff;
+                      border:1.5px solid rgba(34,197,94,0.22);
+                      box-shadow:0 0 0 1px rgba(0,0,0,0.18);
+                      display:flex; align-items:center; justify-content:center;
+                      flex-shrink:0; position:relative;">
+            <!-- Fallback letter — hidden by default, shown only on image error -->
+            <span id="dp-logo-fb"
+                  style="font-family:Inter; font-weight:800; font-size:16px;
+                         color:#374151; position:absolute; z-index:0; display:none;">—</span>
+            <!-- Image overlaid on top; hides on error to reveal letter -->
+            <img id="dp-logo" src="" alt=""
+                 style="width:34px; height:34px; object-fit:contain; position:relative; z-index:1;"
+                 onerror="this.style.display='none';var fb=document.getElementById('dp-logo-fb');if(fb){fb.style.display='block';}" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="dp-ticker" style="font-family:Inter; font-size:22px; font-weight:700; color:white; letter-spacing:-0.01em;">—</span>
+              <span id="dp-sector" class="badge badge-slate" style="font-size:10px;">—</span>
+            </div>
+            <div id="dp-name" class="text-xs mt-0.5" style="color:var(--text-secondary);">—</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-5">
+          <div class="text-right">
+            <div id="dp-weight" class="font-mono text-sm font-bold text-green">—</div>
+            <div id="dp-liveinfo" class="font-mono text-xs" style="color:var(--text-muted);">—</div>
+          </div>
+          <button onclick="closeDrillPanel()"
+                  style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+                         color:#ef4444; background:rgba(239,68,68,0.08);
+                         border:1px solid rgba(239,68,68,0.3); cursor:pointer;
+                         padding:5px 12px; border-radius:5px; letter-spacing:0.05em;
+                         transition:background 0.15s, border-color 0.15s;"
+                  onmouseover="this.style.background='rgba(239,68,68,0.18)';this.style.borderColor='rgba(239,68,68,0.6)'"
+                  onmouseout="this.style.background='rgba(239,68,68,0.08)';this.style.borderColor='rgba(239,68,68,0.3)'">
+            ✕ Close
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab nav ───────────────────────────────────────────────────── -->
+      <div class="flex gap-1 px-5" style="border-bottom:1px solid var(--border);">
+        <button class="tab-btn active" onclick="switchTab(0)">Analysis</button>
+        <button class="tab-btn"        onclick="switchTab(1)">Key Metrics</button>
+      </div>
+
+      <!-- Two-column body ───────────────────────────────────────────── -->
+      <div class="flex" style="min-height:360px;">
+
+        <!-- LEFT — Tab content (~55%) -->
+        <div style="width:55%; border-right:1px solid var(--border); overflow:hidden;">
+
+          <!-- Tab 0: Combined essay (thesis + risk) -->
+          <div id="tab-0" class="tab-content" style="padding:20px; max-height:360px; overflow-y:auto;">
+
+            <div class="font-mono font-bold mb-3"
+                 style="font-size:13px; color:var(--green-primary); letter-spacing:0.06em; text-transform:uppercase;">
+              ▸ Investment Rationale
+            </div>
+            <div id="dp-thesis" style="font-size:13.5px; line-height:1.8; color:var(--text-secondary);"></div>
+
+            <div style="border-top:1px solid var(--border); margin:18px 0 14px;"></div>
+
+            <div class="font-mono font-bold mb-3"
+                 style="font-size:13px; color:rgba(239,68,68,0.75); letter-spacing:0.06em; text-transform:uppercase;">
+              ▸ Risk Considerations
+            </div>
+            <div id="dp-risk" style="font-size:13.5px; line-height:1.8; color:var(--text-secondary);"></div>
+
+          </div>
+
+          <!-- Tab 1: Key metrics table + proxy chart -->
+          <div id="tab-1" class="tab-content" style="display:none; padding:20px; max-height:360px; overflow-y:auto;">
+            <div id="dp-metrics-table" class="mb-4"></div>
+            <div style="height:180px;">
+              <canvas id="proxy-chart"></canvas>
+            </div>
+            <div class="text-xs mt-3" style="color:var(--text-muted);">
+              Source: Bigdata.com · June 20, 2026 · Quarterly trend — approximate
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT — Live stock mini-chart (~45%) -->
+        <div style="width:45%; padding:20px; display:flex; flex-direction:column; gap:10px;">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-mono uppercase tracking-widest"
+                 style="color:var(--text-muted); letter-spacing:0.1em;">
+              Price History
+            </div>
+            <span id="dp-mini-ret" class="font-mono text-xs font-bold text-green"></span>
+          </div>
+          <div style="flex:1; min-height:260px; position:relative;">
+            <canvas id="mini-price-chart"></canvas>
+          </div>
+        </div>
+
+      </div>
+      <!-- END two-column body -->
+
+    </div>
+    <!-- END DRILL PANEL -->
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <footer class="mt-8 px-6 py-4 text-center font-mono text-xs"
+          style="border-top:1px solid var(--border); color:var(--text-muted);">
+    AFM 241 · Arasaka Epsilon All-Equity Regime Fund · Simulated Portfolio — Not Financial Advice
+    &nbsp;|&nbsp; Data as of FY 2024–2025
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       JAVASCRIPT
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <script>
+    // ═══════════════════════════════════════════════════════════════════
+    // 1. LIVE CLOCK
+    // ═══════════════════════════════════════════════════════════════════
+    function updateClock() {
+      const now  = new Date();
+      const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit',
+                     timeZone: 'America/New_York', hour12: false };
+      document.getElementById('live-clock').textContent =
+        now.toLocaleTimeString('en-CA', opts) + ' EDT';
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 2. MARKET STATE ENGINE
+    //    Returns an object describing the current trading phase based on
+    //    Eastern Time. Used to drive badge color, label, dot animation,
+    //    and tick color/volatility multipliers.
+    //
+    //    Phases and ET windows:
+    //      closed     → overnight  (20:00 – 04:00)
+    //      premarket  → early AM   (04:00 – 09:30)
+    //      open       → session    (09:30 – 16:00)   Mon–Fri only
+    //      afterhours → evening    (16:00 – 20:00)
+    //    Weekends always resolve to 'closed'.
+    // ═══════════════════════════════════════════════════════════════════
+    function getMarketState() {
+      const now = new Date();
+      const et  = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const day = et.getDay();   // 0=Sun, 6=Sat
+      const m   = et.getHours() * 60 + et.getMinutes();
+
+      const isWeekday = day >= 1 && day <= 5;
+
+      if (!isWeekday || m < 4 * 60 || m >= 20 * 60) {
+        return {
+          phase:        'closed',
+          label:        'MARKET CLOSED',
+          dotColor:     '#ef4444',
+          dotClass:     '',
+          badgeColor:   '#ef4444',
+          volMult:      0,        // no drift overnight
+          chgColorUp:   'var(--green-primary)',
+          chgColorDown: 'var(--red-accent)',
+          nameColor:    'var(--text-primary)',
+          priceColor:   'var(--text-secondary)',
+          opacity:      1.0,
+        };
+      }
+      if (m < 9 * 60 + 30) {
+        return {
+          phase:        'premarket',
+          label:        'PRE-MARKET',
+          dotColor:     '#f59e0b',
+          dotClass:     'dot-pulse',
+          badgeColor:   '#b45309',
+          volMult:      0.15,
+          chgColorUp:   'rgba(34,197,94,0.50)',
+          chgColorDown: 'rgba(239,68,68,0.50)',
+          nameColor:    'rgba(245,158,11,0.70)',
+          priceColor:   'rgba(209,213,219,0.55)',
+          opacity:      0.70,
+        };
+      }
+      if (m < 16 * 60) {
+        return {
+          phase:        'open',
+          label:        'MARKET OPEN',
+          dotColor:     '#22c55e',
+          dotClass:     'dot-pulse',
+          badgeColor:   '#16a34a',
+          volMult:      1.0,
+          chgColorUp:   'var(--green-primary)',
+          chgColorDown: 'var(--red-accent)',
+          nameColor:    'var(--text-primary)',
+          priceColor:   'var(--text-secondary)',
+          opacity:      1.0,
+        };
+      }
+      // 16:00 – 20:00 → after-hours
+      return {
+        phase:        'afterhours',
+        label:        'AFTER-HOURS',
+        dotColor:     '#818cf8',
+        dotClass:     'dot-pulse',
+        badgeColor:   '#4f46e5',
+        volMult:      0.20,
+        chgColorUp:   'rgba(34,197,94,0.48)',
+        chgColorDown: 'rgba(239,68,68,0.48)',
+        nameColor:    'rgba(209,213,219,0.55)',
+        priceColor:   'rgba(156,163,175,0.50)',
+        opacity:      0.65,
+      };
+    }
+
+    // Update the status badge DOM to match the current market state
+    function applyMarketStateBadge(state) {
+      const dot   = document.getElementById('ticker-dot');
+      const label = document.getElementById('ticker-label');
+      const badge = document.getElementById('ticker-status');
+
+      dot.style.background  = state.dotColor;
+      dot.style.boxShadow   = `0 0 6px ${state.dotColor}`;
+      dot.className         = 'ticker-status-dot ' + state.dotClass;
+      label.textContent     = state.label;
+      badge.style.color     = state.badgeColor;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 3. PORTFOLIO — 10 equity holdings (confirmed from Excel compendium)
+    //    Baseline prices from essay metrics (Bigdata.com, June 20 2026).
+    //    Finnhub replaces these with live data on first fetch.
+    //    BAC and AMZN were earlier-draft picks — final set confirmed below.
+    // ═══════════════════════════════════════════════════════════════════
+    // v3 portfolio — 8 positions, 100% deployed, 0% cash drag
+    const PORTFOLIO = [
+      { ticker: 'JPM',   name: 'JPMorgan Chase',     basePrice: 325.22, weight: 19, vol: 0.04 },
+      { ticker: 'NVDA',  name: 'NVIDIA',             basePrice: 210.69, weight: 17, vol: 0.12 },
+      { ticker: 'DOL',   name: 'Dollarama',          basePrice: 186.89, weight: 13, vol: 0.03 },
+      { ticker: 'MSFT',  name: 'Microsoft',          basePrice: 379.40, weight: 12, vol: 0.06 },
+      { ticker: 'GOOGL', name: 'Alphabet',           basePrice: 368.03, weight: 12, vol: 0.07 },
+      { ticker: 'ETN',   name: 'Eaton Corp',         basePrice: 421.77, weight: 12, vol: 0.06 },
+      { ticker: 'V',     name: 'Visa',               basePrice: 327.24, weight: 10, vol: 0.04 },
+      { ticker: 'META',  name: 'Meta Platforms',     basePrice: 577.22, weight:  5, vol: 0.09 },
+    ];
+
+    // Live price state — mutated by both the real-price fetch and the sim tick
+    const priceState = PORTFOLIO.map(h => ({
+      ticker:        h.ticker,
+      price:         h.basePrice,
+      prevPrice:     h.basePrice,
+      sessionOpen:   h.basePrice,
+      dayChange:     0,
+      vol:           h.vol,
+      usingRealData: false,
+    }));
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 4. REAL PRICE FETCH — Finnhub REST API
+    //    Free tier supports 60 calls/min. We fetch all 10 tickers in
+    //    parallel on load, then refresh every 5 minutes (10 calls/batch).
+    //    Response fields: c=current, dp=day change %, pc=prev close.
+    //    Falls back to baseline simulation if offline or rate-limited.
+    // ═══════════════════════════════════════════════════════════════════
+    const FINNHUB_KEY = 'd8r5tc1r01quatdd4d80d8r5tc1r01quatdd4d8g';
+    let usingRealData = false;
+
+    async function fetchOneTicker(ticker) {
+      const url = `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`;
+      const res  = await fetch(url);
+      if (!res.ok) throw new Error(`Finnhub HTTP ${res.status}`);
+      const q = await res.json();
+      // q.c = current price, q.dp = % change from prev close, q.pc = prev close
+      if (!q.c || q.c === 0) throw new Error(`No data for ${ticker}`);
+      return { ticker, price: q.c, dayChange: q.dp, sessionOpen: q.pc };
+    }
+
+    async function fetchAllPrices() {
+      try {
+        const results = await Promise.all(
+          priceState.map(s => fetchOneTicker(s.ticker))
+        );
+        results.forEach(r => {
+          const s = priceState.find(p => p.ticker === r.ticker);
+          if (!s) return;
+          s.prevPrice     = s.price;
+          s.price         = r.price;
+          s.dayChange     = r.dayChange;
+          s.sessionOpen   = r.sessionOpen;
+          s.usingRealData = true;
+        });
+        usingRealData = true;
+        document.getElementById('live-clock').title = 'Prices: Finnhub (live)';
+        // Immediately refresh card prices after real data lands
+        renderHoldingCards();
+      } catch (err) {
+        console.warn('Finnhub fetch failed, continuing simulation:', err.message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 5. TICKER TAPE — initial render
+    // ═══════════════════════════════════════════════════════════════════
+    function buildTickerHTML(state) {
+      return priceState.map(s => {
+        const sign  = s.dayChange >= 0 ? '+' : '';
+        const arrow = s.dayChange >= 0 ? '▲' : '▼';
+        const chgC  = s.dayChange >= 0 ? state.chgColorUp : state.chgColorDown;
+        return `
+          <span id="tick-${s.ticker}" class="ticker-item inline-flex items-center gap-2 px-5"
+                style="opacity:${state.opacity}; transition: background 0.22s, opacity 0.4s; border-radius:4px;">
+            <span id="tick-name-${s.ticker}" class="font-bold" style="color:${state.nameColor};">${s.ticker}</span>
+            <span id="tick-price-${s.ticker}" style="color:${state.priceColor};">$${s.price.toFixed(2)}</span>
+            <span id="tick-chg-${s.ticker}"   style="color:${chgC}; font-size:11px;">${arrow} ${sign}${s.dayChange.toFixed(2)}%</span>
+            <span style="color:var(--border); margin-left:4px;">|</span>
+          </span>`;
+      }).join('');
+    }
+
+    function initTicker() {
+      const state = getMarketState();
+      const track = document.getElementById('ticker-track');
+      const inner = buildTickerHTML(state);
+      // Duplicate for seamless CSS scroll loop
+      track.innerHTML = inner + inner;
+      deduplicateTickerIds();
+      applyMarketStateBadge(state);
+    }
+
+    // ── Duplicate-id fix ─────────────────────────────────────────────
+    // The doubled HTML creates invalid duplicate ids.
+    // Strip ids from the second copy, replace with data-dupe-* attrs.
+    function deduplicateTickerIds() {
+      const track = document.getElementById('ticker-track');
+      const items = track.querySelectorAll('.ticker-item');
+      const half  = items.length / 2;
+      for (let i = half; i < items.length; i++) {
+        const item   = items[i];
+        const origId = item.id;
+        item.removeAttribute('id');
+        item.setAttribute('data-dupe', origId);
+        item.querySelectorAll('[id]').forEach(child => {
+          child.setAttribute('data-dupe-child', child.id);
+          child.removeAttribute('id');
+        });
+      }
+    }
+
+    // ── Helpers to target both real + dupe elements ──────────────────
+    function tickEl(baseId) {
+      return [
+        document.getElementById(baseId),
+        document.querySelector(`[data-dupe-child="${baseId}"]`),
+      ].filter(Boolean);
+    }
+    function tickWrapEl(baseId) {
+      return [
+        document.getElementById(baseId),
+        document.querySelector(`[data-dupe="${baseId}"]`),
+      ].filter(Boolean);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 6. 500ms TICK ENGINE — micro-fluctuation simulation
+    //    - When real data is available, randomwalks around the last known
+    //      real price rather than the hardcoded baseline.
+    //    - volMult from market state scales motion to near-zero overnight.
+    //    - Fires green/red flash only during open/pre-market/after-hours.
+    // ═══════════════════════════════════════════════════════════════════
+    const FLASH_MS = 240;
+
+    function tickPrices() {
+      const state = getMarketState();
+
+      // Refresh badge every tick (cheap DOM update, keeps it in sync)
+      applyMarketStateBadge(state);
+
+      // When market is closed: freeze prices, just ensure colors are correct, skip random walk
+      if (state.phase === 'closed') {
+        priceState.forEach(s => {
+          const sign  = s.dayChange >= 0 ? '+' : '';
+          const arrow = s.dayChange >= 0 ? '▲' : '▼';
+          const chgC  = s.dayChange >= 0 ? state.chgColorUp : state.chgColorDown;
+          tickEl(`tick-price-${s.ticker}`).forEach(el => {
+            el.textContent = `$${s.price.toFixed(2)}`;
+            el.style.color  = state.priceColor;
+          });
+          tickEl(`tick-chg-${s.ticker}`).forEach(el => {
+            el.textContent = `${arrow} ${sign}${s.dayChange.toFixed(2)}%`;
+            el.style.color  = chgC;
+          });
+          tickEl(`tick-name-${s.ticker}`).forEach(el => {
+            el.style.color = state.nameColor;
+          });
+          tickWrapEl(`tick-${s.ticker}`).forEach(el => {
+            el.style.opacity    = state.opacity;
+            el.style.background = 'transparent';
+          });
+        });
+        return;
+      }
+
+      priceState.forEach(s => {
+        // Random walk — scale by market phase multiplier
+        const drift = (Math.random() * 2 - 1) * s.vol * state.volMult / 100;
+        s.prevPrice = s.price;
+        s.price     = Math.max(s.price * (1 + drift), 0.01);
+
+        // Day-change % — if real data landed, measured from session open;
+        // otherwise measured from hardcoded basePrice.
+        const ref   = s.usingRealData ? s.sessionOpen
+                                      : PORTFOLIO.find(h => h.ticker === s.ticker).basePrice;
+        s.dayChange = ((s.price - ref) / ref) * 100;
+
+        const up    = s.price >= s.prevPrice;
+        const sign  = s.dayChange >= 0 ? '+' : '';
+        const arrow = s.dayChange >= 0 ? '▲' : '▼';
+        const chgC  = s.dayChange >= 0 ? state.chgColorUp : state.chgColorDown;
+
+        // DOM update — price + change text
+        tickEl(`tick-price-${s.ticker}`).forEach(el => {
+          el.textContent = `$${s.price.toFixed(2)}`;
+          el.style.color  = state.priceColor;
+        });
+        tickEl(`tick-chg-${s.ticker}`).forEach(el => {
+          el.textContent = `${arrow} ${sign}${s.dayChange.toFixed(2)}%`;
+          el.style.color  = chgC;
+        });
+        tickEl(`tick-name-${s.ticker}`).forEach(el => {
+          el.style.color = state.nameColor;
+        });
+
+        // Opacity + flash
+        tickWrapEl(`tick-${s.ticker}`).forEach(el => {
+          el.style.opacity = state.opacity;
+          if (state.volMult > 0) {
+            const flashColor = up
+              ? 'rgba(34,197,94,0.20)'
+              : 'rgba(239,68,68,0.20)';
+            el.style.background = flashColor;
+            setTimeout(() => { el.style.background = 'transparent'; }, FLASH_MS);
+          }
+        });
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 7. HOLDINGS DATA OBJECT
+    //    Single source of truth for all 10 equity positions + Cash buffer.
+    //    Fundamental data sourced from Bigdata.com tearsheets, June 2026.
+    //    Proxy data arrays are quarterly trend series used for mini-charts.
+    //
+    //    proxyType key:
+    //      'pe_growth'    → Revenue Growth YoY (%) + TTM P/E trend
+    //      'roe_roa'      → Sequential ROE + ROA (%)
+    //      'margin_growth'→ EBITDA Margin (%) + Revenue Growth YoY (%)
+    // ═══════════════════════════════════════════════════════════════════
+    // v3 holdings — 8 positions ordered by weight descending
+    const HOLDINGS_DATA = [
+      {
+        ticker: 'JPM', name: 'JPMorgan Chase & Co.',
+        sector: 'Financials', exchange: 'NYSE',
+        role: 'Core', score: 82, weight: 19,
+        sectorBadge: 'badge-green',
+        thesis: `JPMorgan is the portfolio anchor — the largest and best-capitalized U.S. money-center bank, explicitly supported by the market context note: higher-for-longer rates are a structural tailwind for net interest margins, and large well-capitalized banks look relatively stable. ROE of 16.3% and ROA of 1.2% are best-in-class in U.S. banking, reflecting NIM expansion, investment banking strength, and asset management scale. P/E of 15.4× is inexpensive for a quality compounder. Elevated to 19% in v3 (from 8–10% in v2) after dropping Mastercard — JPM anchors the Financials sleeve and provides the fund's most direct expression of the higher-for-longer thesis. Analyst consensus: 32 Buy / 27 Hold / 2 Sell with $336 median target.`,
+        metrics: [
+          { label: 'Price',       value: '$325.22' },
+          { label: '52-Wk Range', value: '$272 – $338' },
+          { label: 'Market Cap',  value: '$871B' },
+          { label: 'Revenue TTM', value: '$285.1B' },
+          { label: 'Rev Growth',  value: '+4.3%' },
+          { label: 'Net Margin',  value: '20.7%' },
+          { label: 'ROE',         value: '16.3%' },
+          { label: 'ROA',         value: '1.2%' },
+          { label: 'P/E (TTM)',   value: '15.4×' },
+          { label: 'Beta',        value: '1.00' },
+          { label: 'Price Target',value: '$336 (+3.3%)' },
+        ],
+        risk: `At 19%, JPM is the fund's single largest position — a credit event (commercial real estate stress, consumer delinquency spike) creates the portfolio's largest single-name drawdown. CET1 ratio not available in Bigdata.com tearsheet — verify from JPM 10-Q. Momentum 55/100 (6M +2.5%) — market has not fully priced the NIM tailwind, which is either an opportunity or a skepticism signal. Analyst target implies only 3.3% near-term upside.`,
+        proxyType: 'roe_roa',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'ROE (%)', data: [15.5, 16.0, 16.1, 16.2, 16.3], color: '#22c55e' },
+          { label: 'ROA (%)', data: [1.10, 1.15, 1.17, 1.19, 1.20], color: '#f59e0b' },
+        ],
+      },
+      {
+        ticker: 'NVDA', name: 'NVIDIA Corporation',
+        sector: 'Technology', exchange: 'Nasdaq',
+        role: 'Core', score: 87, weight: 17,
+        sectorBadge: 'badge-blue',
+        thesis: `NVIDIA is the AI infrastructure backbone — H100/H200/Blackwell GPUs are the constrained resource for every major AI model training and inference deployment globally. At 70.7% YoY revenue growth on a $253.5B TTM base, NVDA reflects a multi-year AI capex supercycle among hyperscalers and sovereign AI programs. Gross margin 74.2%, EBITDA margin 76%, net cash position, and SBC of just 2.7% of revenue make this the highest-quality growth business in the fund. Trimmed to 17% in v3 (from 25% cap in v2) explicitly to address market context: high-multiple semiconductors are momentum-driven and rate-sensitive with rotation risk live this quarter. Secular momentum 82/100 — trend intact.`,
+        metrics: [
+          { label: 'Price',        value: '$210.69' },
+          { label: '52-Wk Range',  value: '$142 – $237' },
+          { label: 'Market Cap',   value: '$5,103B' },
+          { label: 'Revenue TTM',  value: '$253.5B' },
+          { label: 'Rev Growth',   value: '+70.7%' },
+          { label: 'FCF TTM',      value: '$119.1B' },
+          { label: 'Gross Margin', value: '74.2%' },
+          { label: 'EBITDA Margin',value: '76.0%' },
+          { label: 'P/E (TTM)',    value: '32.1×' },
+          { label: 'Beta',         value: '2.20 ⚠' },
+          { label: 'Price Target', value: '$300 (+42%)' },
+        ],
+        risk: `⚠ Beta 2.2 — the fund's primary volatility source. AI capex sentiment rotation or a single soft guidance quarter reprices sharply. Combined with MSFT and GOOGL, the AI infrastructure sub-theme represents ~41% of the fund under the broadest definition — the portfolio's most concentrated stress scenario. Position trimmed from 25% specifically to address this concentration.`,
+        proxyType: 'pe_growth',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'Rev Growth YoY (%)', data: [122.4, 94.0, 78.4, 73.5, 70.7], color: '#22c55e' },
+          { label: 'P/E TTM (×)',        data: [40.2,  37.8, 35.1, 33.0, 32.1], color: '#60a5fa' },
+        ],
+      },
+      {
+        ticker: 'DOL', name: 'Dollarama Inc.',
+        sector: 'Consumer Discretionary', exchange: 'TSX',
+        role: 'Ballast', score: 70, weight: 13,
+        sectorBadge: 'badge-rose',
+        thesis: `Dollarama is the fund's defensive ballast — Canada's dominant fixed-price discount retailer with 1,600+ stores whose business model structurally benefits from consumer spending softening. The market context is explicit: consumer spending is softening at the lower end, and quality consumer-defensive names tend to hold up when growth slows. DOL sees accelerating trade-down from full-price retail as value-conscious consumers shift to its $1–$5 price points. ROE of 95.9% reflects world-class capital efficiency and inventory discipline. Beta of 0.40 is the lowest in the fund — providing genuine protection against the tech/AI rotation risk that is the portfolio's primary vulnerability. New addition in v3 as the fund's sole non-correlated consumer holding.`,
+        metrics: [
+          { label: 'Price',        value: 'CAD$186.89' },
+          { label: '52-Wk Range',  value: 'CAD$145 – $202' },
+          { label: 'Market Cap',   value: 'CAD$53B' },
+          { label: 'ROE',          value: '95.9%' },
+          { label: 'P/E (TTM)',    value: '38.3×' },
+          { label: 'Beta',         value: '0.40 ✓' },
+          { label: '3M Return',    value: '+3.5%' },
+          { label: '6M Return',    value: '-8.1% ⚠' },
+          { label: 'Momentum',     value: '38/100 — mixed' },
+          { label: 'Exchange',     value: 'TSX (CAD)' },
+          { label: 'v3 Score',     value: '70/100' },
+        ],
+        risk: `⚠ P/E 38.3× is elevated for a discount retailer — paying a material quality premium. Trade-down thesis requires continued consumer softening; economy stabilization reverses the thesis catalyst and compresses the multiple. GICS classified Consumer Discretionary, not Staples — does not fully isolate from sector drawdowns. 6M -8.1% is a momentum red flag for a "defensive" holding. CAD/USD FX risk for this USD-denominated fund. 13% weight is the highest weight-to-score ratio (70/100) in the fund — justified by diversification benefit but bears monitoring.`,
+        proxyType: 'margin_growth',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'Rev Growth YoY (%)', data: [6.8,  7.2,  7.8,  8.1,  8.4],  color: '#22c55e' },
+          { label: 'Gross Margin (%)',   data: [45.1, 45.5, 46.0, 46.4, 46.8], color: '#fb7185' },
+        ],
+      },
+      {
+        ticker: 'MSFT', name: 'Microsoft Corporation',
+        sector: 'Technology', exchange: 'Nasdaq',
+        role: 'Core', score: 82, weight: 12,
+        sectorBadge: 'badge-blue',
+        thesis: `Microsoft is the cloud AI platform anchor. Azure (28%+ YoY growth), Copilot AI integration across Office 365 and enterprise tools, and a near-zero-leverage balance sheet (Net Debt/EBITDA 0.12×) make it structurally insulated from rate sensitivity. $72.9B FCF TTM and 68.3% gross margin reflect the highest-quality balance sheet in the fund. Secular momentum is deeply negative (3M -0.6%, 6M -21.9% vs. SPY — Momentum 12/100), but held at 12% as a mean-reversion bet: analyst PT $552 vs. $379 = 45% upside. The thesis is that a world-class business is temporarily below its secular trend line.`,
+        metrics: [
+          { label: 'Price',        value: '$379.40' },
+          { label: '52-Wk Range',  value: '$356 – $555' },
+          { label: 'Market Cap',   value: '$2,818B' },
+          { label: 'Revenue TTM',  value: '$318.3B' },
+          { label: 'Rev Growth',   value: '+17.9%' },
+          { label: 'FCF TTM',      value: '$72.9B' },
+          { label: 'Gross Margin', value: '68.3%' },
+          { label: 'EBITDA Margin',value: '63.1%' },
+          { label: 'P/E (TTM)',    value: '22.5×' },
+          { label: 'Beta',         value: '1.10' },
+          { label: 'Price Target', value: '$552 (+45%)' },
+        ],
+        risk: `⚠ Secular momentum headwind: 3M -0.6%, 6M -21.9% in a +27% SPY market (Momentum 12/100 — second-weakest in fund). Increasing weight to 12% is a mean-reversion conviction call — if reversion does not materialize in the 30-day horizon, MSFT underperforms for a third consecutive window. Azure growth deceleration below 20% YoY is a trim trigger. Copilot monetization pace remains uncertain.`,
+        proxyType: 'pe_growth',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'Rev Growth YoY (%)', data: [15.2, 16.0, 17.6, 17.8, 17.9], color: '#22c55e' },
+          { label: 'P/E TTM (×)',        data: [34.1, 30.5, 28.4, 25.1, 22.5], color: '#60a5fa' },
+        ],
+      },
+      {
+        ticker: 'GOOGL', name: 'Alphabet Inc.',
+        sector: 'Communication Services', exchange: 'Nasdaq',
+        role: 'Core', score: 82, weight: 12,
+        sectorBadge: 'badge-purple',
+        thesis: `Alphabet is the fund's strongest momentum name — Momentum 90/100 (3M +22%, 6M +20%), the highest in the portfolio. GCP (Google Cloud) growing 28%+ YoY is where AI monetization is most direct. Gemini AI integration across Search, Workspace, and Cloud creates a multi-product compounding story. EBITDA margin 51.8%, EV/EBITDA 20.6× (primary valuation metric given elevated CapEx), P/E 27.8× — all reasonable for 17.5% revenue growth. Weight increased to 12% in v3 — the analytical case is strong given momentum leadership in the portfolio. Analyst consensus: 71 Buy / 11 Hold / 1 Sell, median target $420 (+14%).`,
+        metrics: [
+          { label: 'Price',        value: '$368.03' },
+          { label: '52-Wk Range',  value: '$162 – $409' },
+          { label: 'Market Cap',   value: '$4,451B' },
+          { label: 'Revenue TTM',  value: '$422.6B' },
+          { label: 'Rev Growth',   value: '+17.5%' },
+          { label: 'FCF TTM',      value: '$64.4B (CapEx↑)' },
+          { label: 'EBITDA Margin',value: '51.8%' },
+          { label: 'EV/EBITDA',    value: '20.6× (primary)' },
+          { label: 'P/E (TTM)',    value: '27.8×' },
+          { label: 'Beta',         value: '1.24' },
+          { label: 'Price Target', value: '$420 (+14%)' },
+        ],
+        risk: `+121% 1Y return may have largely priced in the AI re-rating — PT $420 vs. $368 implies only 14% upside at a 12% fund weight. Search share loss to AI-native competitors (Perplexity, ChatGPT Search) is the primary structural threat. SBC of $26.2B (6.2% of revenue) is the highest in the tech cohort. Q1 2026 CapEx hit $17B — if AI infrastructure ROI disappoints, the capital allocation narrative reverses sharply.`,
+        proxyType: 'pe_growth',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'Rev Growth YoY (%)', data: [13.6, 15.1, 16.5, 17.0, 17.5], color: '#22c55e' },
+          { label: 'P/E TTM (×)',        data: [22.1, 23.4, 25.0, 26.5, 27.8], color: '#a78bfa' },
+        ],
+      },
+      {
+        ticker: 'ETN', name: 'Eaton Corporation plc',
+        sector: 'Industrials', exchange: 'NYSE',
+        role: 'Tactical', score: 78, weight: 12,
+        sectorBadge: 'badge-amber',
+        thesis: `Eaton is the electrification play — power management and electrical distribution products are critical, constrained infrastructure for AI data center buildouts. Every major hyperscaler construction program requires Eaton's switchgear, transformers, and power distribution units. Revenue grew 12.7% YoY on this demand; EBITDA margin 21.9% with ~76% FCF conversion. Momentum 89/100 (6M +32.7%) — strongest momentum in the portfolio. Weight increased to 12% in v3 (from 6%) as the sole Industrials holding. The electrification thesis is multi-decade: AI power demand is structurally under-supplied, and Eaton's grid infrastructure position is a beneficiary regardless of which AI model wins.`,
+        metrics: [
+          { label: 'Price',        value: '$421.77' },
+          { label: '52-Wk Range',  value: '$312 – $435' },
+          { label: 'Market Cap',   value: '$164B' },
+          { label: 'Revenue TTM',  value: '$28.5B' },
+          { label: 'Rev Growth',   value: '+12.7%' },
+          { label: 'FCF TTM',      value: '$4.7B' },
+          { label: 'Gross Margin', value: '36.9%' },
+          { label: 'EBITDA Margin',value: '21.9%' },
+          { label: 'P/E (TTM)',    value: '41.1×' },
+          { label: 'Net Debt/EBITDA', value: '3.41× ⚠' },
+          { label: 'Price Target', value: '$440.50 (+4.4%)' },
+        ],
+        risk: `⚠ Net Debt/EBITDA 3.41× exceeds the 3.0× industrial guideline. As the sole Industrials holding, ETN equals 100% of sector exposure. ETN is effectively an AI capex proxy via power infrastructure — if hyperscaler spending disappoints, ETN de-rates alongside NVDA and MSFT in the same stress scenario. Analyst PT implies only 4.4% near-term upside. Backlog data unavailable in Bigdata.com tearsheet.`,
+        proxyType: 'margin_growth',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'Rev Growth YoY (%)', data: [11.2, 11.8, 12.1, 12.4, 12.7], color: '#22c55e' },
+          { label: 'EBITDA Margin (%)',  data: [19.8, 20.5, 21.0, 21.5, 21.9], color: '#f59e0b' },
+        ],
+      },
+      {
+        ticker: 'V', name: 'Visa Inc.',
+        sector: 'Financials', exchange: 'NYSE',
+        role: 'Tactical', score: 79, weight: 10,
+        sectorBadge: 'badge-green',
+        thesis: `Visa is the digital payments toll road — a capital-light payment network with 52% net margins, low beta (0.77), and structural immunity to credit risk and NIM dynamics. Revenue of $43B growing 14.4% YoY reflects cross-border recovery and digital commerce penetration. At 65.7% EBITDA margin and $21.2B FCF TTM, quality is exceptional. Mastercard dropped in v3 for near-identical risk with worse momentum (MA 6M -14.4% vs. V -6.3%). Visa retained as the cleaner name — lower regulatory risk, higher gross margin, SBC of $0.92B (2.1% of revenue) cleanest in fund. Weight increased to 10% absorbing part of MA's freed allocation.`,
+        metrics: [
+          { label: 'Price',        value: '$327.24' },
+          { label: '52-Wk Range',  value: '$294 – $360' },
+          { label: 'Market Cap',   value: '$627B' },
+          { label: 'Revenue TTM',  value: '$43.0B' },
+          { label: 'Rev Growth',   value: '+14.4%' },
+          { label: 'FCF TTM',      value: '$21.2B' },
+          { label: 'EBITDA Margin',value: '65.7%' },
+          { label: 'Net Margin',   value: '51.7%' },
+          { label: 'ROE',          value: '58.9%' },
+          { label: 'Beta',         value: '0.77' },
+          { label: 'Price Target', value: '$385 (+17.7%)' },
+        ],
+        risk: `6M -6.3% momentum headwind persists (Momentum 45/100 — mixed signals). Interchange fee regulation in U.S. and EU. Antitrust risk on merchant fees. ROE of 58.9% is buyback-inflated. V+JPM = 29% of Financials (approaching 35% sector cap — monitor). Real-time payment rails (FedNow, RTP) represent a long-term structural threat to the card network model.`,
+        proxyType: 'roe_roa',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'ROE (%)', data: [55.2, 56.8, 57.4, 58.1, 58.9], color: '#22c55e' },
+          { label: 'ROA (%)', data: [21.8, 22.4, 22.8, 23.1, 23.4], color: '#f59e0b' },
+        ],
+      },
+      {
+        ticker: 'META', name: 'Meta Platforms, Inc.',
+        sector: 'Communication Services', exchange: 'Nasdaq',
+        role: 'Tactical', score: 73, weight: 5,
+        sectorBadge: 'badge-purple',
+        thesis: `Meta is held at 5% as a minimal social advertising diversifier — the weakest momentum name in v3 (Momentum 15/100: 3M -2.8%, 6M -12.4%) but retained for its AI advertising optionality. Llama AI models are improving ad targeting conversion and engagement simultaneously. At P/E 20.7× and 26.2% revenue growth, it is the most attractively valued compounder on a PEG basis if momentum recovers. The small position size reflects the momentum headwind. META would be the first exit in a v4 rebalance if both price windows remain negative.`,
+        metrics: [
+          { label: 'Price',        value: '$577.22' },
+          { label: '52-Wk Range',  value: '$520 – $796' },
+          { label: 'Market Cap',   value: '$1,465B' },
+          { label: 'Revenue TTM',  value: '$215.0B' },
+          { label: 'Rev Growth',   value: '+26.2%' },
+          { label: 'FCF TTM',      value: '$48.3B (⚠ SBC)' },
+          { label: 'EBITDA Margin',value: '52.8%' },
+          { label: 'EV/EBITDA',    value: '13.5× (cheap)' },
+          { label: 'P/E (TTM)',    value: '20.7×' },
+          { label: 'Beta',         value: '1.23' },
+          { label: 'Price Target', value: '$835 (+44.7%)' },
+        ],
+        risk: `⚠ Lowest momentum in fund: 3M -2.8%, 6M -12.4% (Momentum 15/100). Both windows negative in a bull market — a sustained failure signal. SBC of $22.3B (10.4% of revenue) exceeds the 10% flag threshold — SBC-adjusted FCF is $26B vs. reported $48B. Reality Labs operating losses remain a material drag. First to exit in v4 rebalance if momentum does not recover.`,
+        proxyType: 'pe_growth',
+        proxyLabels: ["Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25"],
+        proxyDatasets: [
+          { label: 'Rev Growth YoY (%)', data: [22.1, 19.5, 21.0, 24.8, 26.2], color: '#22c55e' },
+          { label: 'P/E TTM (×)',        data: [25.1, 22.4, 20.5, 20.3, 20.7], color: '#a78bfa' },
+        ],
+      },
+    ];
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 8. HOLDING CARDS RENDER
+    // ═══════════════════════════════════════════════════════════════════
+
+    const AUM = 1_000_000;  // total fund size USD
+
+    // Optimized share counts — maximize $1M deployment with no fractional shares.
+    // Exhaustive search result: +3 ETN leaves only $1.54 uninvested (0.00015%).
+    const SHARES_OVERRIDE = {
+      JPM:   584,
+      NVDA:  806,
+      DOL:   695,
+      MSFT:  316,
+      GOOGL: 326,
+      ETN:   287,   // +3 from weight-target floor to absorb $1,265.31 of leftover cash
+      V:     305,
+      META:   86,
+    };
+
+    // Base logo source: clearbit (transparent-bg, high-res, updated marks)
+    // Format: https://logo.clearbit.com/{domain}
+    // v3: JPM → chase.com (circular Chase mark), DOL added
+    const LOGO_DOMAINS = {
+      JPM:  'chase.com',     NVDA: 'nvidia.com',    DOL:  'dollarama.com',
+      MSFT: 'microsoft.com', GOOGL: 'google.com',   ETN:  'eaton.com',
+      V:    'visa.com',      META: 'meta.com',
+    };
+
+    // Targeted overrides — clearbit fallback used for most (transparent-bg, high-res).
+    // Explicit overrides where we want a specific asset.
+    const LOGO_OVERRIDES = {
+      NVDA:  'https://logo.clearbit.com/nvidia.com',      // 2025 eye/iris mark
+      DOL:   'https://logo.clearbit.com/dollarama.com',   // transparent-bg, fits circle
+      JPM:   'https://www.google.com/s2/favicons?domain=chase.com&sz=128',  // Chase octagon
+      GOOGL: 'https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
+    };
+
+    // Compute whole-share count from baseline price (buy-and-hold model)
+    function getShares(ticker) {
+      if (SHARES_OVERRIDE[ticker] !== undefined) return SHARES_OVERRIDE[ticker];
+      const h = HOLDINGS_DATA.find(d => d.ticker === ticker);
+      const p = PORTFOLIO.find(pp => pp.ticker === ticker);
+      if (!h || !p) return 0;
+      return Math.floor((AUM * h.weight / 100) / p.basePrice);
+    }
+
+    function renderHoldingCards() {
+      const grid = document.getElementById('holdings-grid');
+
+      grid.innerHTML = HOLDINGS_DATA.map(h => {
+        const ps       = priceState.find(p => p.ticker === h.ticker);
+        const price    = ps ? ps.price : 0;
+        const chg      = ps ? ps.dayChange : 0;
+        const arrow    = chg >= 0 ? '▲' : '▼';
+        const sign     = chg >= 0 ? '+' : '';
+        const chgColor = chg >= 0 ? 'var(--green-primary)' : 'var(--red-accent)';
+        const shares   = getShares(h.ticker);
+        const liveVal  = shares * price;
+        const valStr   = liveVal.toLocaleString('en-US',
+          { style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2 });
+        const domain      = LOGO_DOMAINS[h.ticker];
+        const logoUrl     = LOGO_OVERRIDES[h.ticker]
+          || (domain ? `https://logo.clearbit.com/${domain}` : '');
+        const googleFbUrl = domain
+          ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '';
+
+        const logoHTML = `<div style="width:36px;height:36px;border-radius:50%;
+                         background:#ffffff;
+                         border:1.5px solid rgba(34,197,94,0.22);
+                         box-shadow:0 0 0 1px rgba(0,0,0,0.18);
+                         display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                         position:relative;overflow:hidden;">
+               <span style="font-family:Inter;font-weight:800;font-size:12px;
+                            color:#374151;position:absolute;z-index:0;display:none;">
+                 ${h.ticker[0]}
+               </span>
+               <img src="${logoUrl}" alt="${h.ticker}"
+                    ${googleFbUrl ? `data-fb="${googleFbUrl}"` : ''}
+                    style="width:24px;height:24px;object-fit:contain;position:relative;z-index:1;"
+                    onerror="if(this.dataset.fb){var u=this.dataset.fb;delete this.dataset.fb;this.src=u;}else{this.style.display='none';var fb=this.previousElementSibling;if(fb)fb.style.display='block';}" />
+             </div>`;
+
+        return `
+        <div class="holding-card px-4 py-3"
+             data-ticker="${h.ticker}"
+             onclick="openDrillDown('${h.ticker}')">
+
+          <!-- Logo + Ticker -->
+          <div class="flex items-center gap-2 mb-3">
+            ${logoHTML}
+            <span style="font-family:Inter; font-size:17px; font-weight:700;
+                         color:white; letter-spacing:-0.01em;">${h.ticker}</span>
+          </div>
+
+          <!-- Allocation + shares -->
+          <div class="font-mono text-sm font-bold text-green">
+            ${h.weight}% · ${shares.toLocaleString()} shares
+          </div>
+
+          <!-- Live USD value -->
+          <div id="card-value-${h.ticker}" class="font-mono text-xs mt-0.5"
+               style="color:var(--text-secondary);">
+            ${valStr}
+          </div>
+
+          <!-- Price footer -->
+          <div class="flex items-center justify-between mt-3 pt-2"
+               style="border-top:1px solid var(--border);
+                      font-family:'JetBrains Mono',monospace;">
+            <span id="card-price-${h.ticker}"
+                     style="font-size:13px;font-weight:700;color:var(--green-primary);">
+               $${price.toFixed(2)}
+             </span>
+             <span id="card-chg-${h.ticker}"
+                   style="font-size:10px;color:${chgColor};">
+               ${arrow} ${sign}${chg.toFixed(2)}%
+             </span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Update card cells on every 500ms tick — no full re-render ────
+    function updateCardPrices() {
+      priceState.forEach(s => {
+        const priceEl = document.getElementById(`card-price-${s.ticker}`);
+        const chgEl   = document.getElementById(`card-chg-${s.ticker}`);
+        const valEl   = document.getElementById(`card-value-${s.ticker}`);
+        if (!priceEl) return;
+
+        const arrow   = s.dayChange >= 0 ? '▲' : '▼';
+        const sign    = s.dayChange >= 0 ? '+' : '';
+        const shares  = getShares(s.ticker);
+        const liveVal = shares * s.price;
+
+        priceEl.textContent = `$${s.price.toFixed(2)}`;
+        if (chgEl) {
+          chgEl.textContent = `${arrow} ${sign}${s.dayChange.toFixed(2)}%`;
+          chgEl.style.color = s.dayChange >= 0 ? 'var(--green-primary)' : 'var(--red-accent)';
+        }
+        if (valEl) {
+          valEl.textContent = liveVal.toLocaleString('en-US',
+            { style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2 });
+        }
+      });
+
+      // Update live AUM chip
+      const totalAUM = priceState.reduce((sum, s) => sum + getShares(s.ticker) * s.price, 0);
+      const aumEl = document.getElementById('metric-aum');
+      if (aumEl) aumEl.textContent = totalAUM.toLocaleString('en-US',
+        { style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2 });
+
+      // Update Total Return Since Inception chip (vs $1M starting AUM)
+      const inceptEl = document.getElementById('metric-inception-ret');
+      if (inceptEl) {
+        const ret = (totalAUM - AUM) / AUM * 100;
+        inceptEl.textContent = (ret >= 0 ? '+' : '') + ret.toFixed(2) + '%';
+        inceptEl.style.color = ret >= 0 ? 'var(--green-primary)' : 'var(--red-accent)';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 9. ESSAY FORMATTER
+    //    Applies color + weight highlights to numbers/flags in plain text.
+    //    Green → dollar values | Amber → percentages | Blue → multiples
+    //    Red → warnings
+    // ═══════════════════════════════════════════════════════════════════
+    function formatEssay(text) {
+      // Dollar values → green (only color used for positive signals)
+      text = text.replace(/(\$[\d,]+(?:\.\d+)?(?:B|M|K|T)?(?:\s+TTM)?(?:\s+FCF)?)/g,
+        '<strong style="color:#22c55e;">$1</strong>');
+      // Percentages → bold only, no color
+      text = text.replace(/([\+\-]?\d+(?:\.\d+)?%)/g,
+        '<strong>$1</strong>');
+      // Multiples → bold only, no color
+      text = text.replace(/(\d+(?:\.\d+)?×)/g,
+        '<strong>$1</strong>');
+      // Warnings → red, kept for functional risk signaling only
+      text = text.replace(/(⚠[^<\n]*)/g,
+        '<span style="color:#ef4444;font-weight:600;">$1</span>');
+      return text;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 10. DRILL-DOWN PANEL
+    // ═══════════════════════════════════════════════════════════════════
+    let activeProxyChart = null;
+
+    function openDrillDown(ticker) {
+      const h  = HOLDINGS_DATA.find(d => d.ticker === ticker);
+      if (!h) return;
+      const ps = priceState.find(p => p.ticker === ticker);
+
+      // Highlight active card
+      document.querySelectorAll('.holding-card').forEach(c => c.classList.remove('active'));
+      const card = document.querySelector(`[data-ticker="${ticker}"]`);
+      if (card) card.classList.add('active');
+
+      // Header
+      document.getElementById('dp-ticker').textContent = h.ticker;
+      document.getElementById('dp-name').textContent   = h.name;
+      document.getElementById('dp-sector').textContent = `${h.sector} · ${h.exchange}`;
+
+      // Logo — reset image and fallback letter for this ticker
+      const logoImg = document.getElementById('dp-logo');
+      const logoFb  = document.getElementById('dp-logo-fb');
+      const domain  = LOGO_DOMAINS[ticker];
+      logoImg.style.display = '';           // un-hide in case previous ticker errored
+      if (logoFb) { logoFb.textContent = ticker[0]; logoFb.style.display = 'none'; }
+      if (LOGO_OVERRIDES[ticker] || domain) {
+        const primaryUrl = LOGO_OVERRIDES[ticker] || `https://logo.clearbit.com/${domain}`;
+        const googleFb   = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '';
+        logoImg.src = primaryUrl;
+        logoImg.alt = ticker;
+        logoImg.dataset.fb = googleFb;
+        logoImg.onerror = function() {
+          if (this.dataset.fb) {
+            var u = this.dataset.fb; delete this.dataset.fb; this.src = u;
+          } else {
+            this.style.display = 'none';
+            var fb = document.getElementById('dp-logo-fb');
+            if (fb) fb.style.display = 'block';
+          }
+        };
+      } else {
+        logoImg.style.display = 'none';
+        if (logoFb) logoFb.style.display = 'block';
+      }
+
+      // Weight + live info
+      const shares = getShares(ticker);
+      document.getElementById('dp-weight').textContent =
+        `${h.weight}% · ${shares.toLocaleString()} shares`;
+      document.getElementById('dp-liveinfo').textContent =
+        ps ? `$${ps.price.toFixed(2)} · ${ps.dayChange >= 0 ? '+' : ''}${ps.dayChange.toFixed(2)}% today`
+           : '—';
+
+      // Tab 0 — Combined essay
+      document.getElementById('dp-thesis').innerHTML = formatEssay(h.thesis);
+      document.getElementById('dp-risk').innerHTML   = formatEssay(h.risk);
+
+      // Tab 1 — Metrics table (proxy chart rendered lazily on tab switch)
+      const metricsHtml = h.metrics.map(m =>
+        `<div class="flex justify-between py-1.5"
+              style="border-bottom:1px solid var(--border);">
+           <span style="font-family:'JetBrains Mono',monospace; font-size:11px;
+                        color:var(--text-muted);">${m.label}</span>
+           <span style="font-family:'JetBrains Mono',monospace; font-size:11px;
+                        font-weight:600; color:var(--text-primary);">${m.value}</span>
+         </div>`
+      ).join('');
+      document.getElementById('dp-metrics-table').innerHTML = metricsHtml;
+
+      // Show panel, reset to tab 0
+      const panel = document.getElementById('drill-panel');
+      panel.style.display = 'block';
+      panel.dataset.activeTicker = ticker;
+      switchTab(0);
+
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      activeTicker = ticker;
+      renderMiniChart(ticker);
+    }
+
+    function renderProxyChart(ticker) {
+      const h = HOLDINGS_DATA.find(d => d.ticker === ticker);
+      if (!h || !h.proxyType || !h.proxyDatasets.length) return;
+      const ctx = document.getElementById('proxy-chart');
+      if (!ctx) return;
+      if (activeProxyChart) { activeProxyChart.destroy(); activeProxyChart = null; }
+
+      activeProxyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: h.proxyLabels,
+          datasets: h.proxyDatasets.map((ds, i) => ({
+            label: ds.label, data: ds.data,
+            backgroundColor: ds.color + '28', borderColor: ds.color,
+            borderWidth: 1.5, borderRadius: 3,
+            type:    i === 0 ? 'bar'  : 'line',
+            yAxisID: i === 0 ? 'y'    : 'y1',
+            tension: 0.35, pointRadius: 3, fill: false,
+          })),
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend:  { labels: { color: '#8a9bb0', font: { family:'JetBrains Mono', size:10 } } },
+            tooltip: { backgroundColor:'#111518', borderColor:'#1f2933', borderWidth:1,
+                       titleColor:'#e8eaed', bodyColor:'#8a9bb0',
+                       titleFont:{ family:'JetBrains Mono' }, bodyFont:{ family:'JetBrains Mono' } },
+          },
+          scales: {
+            x:  { ticks:{ color:'#8a9bb0', font:{ family:'JetBrains Mono', size:10 } }, grid:{ color:'#1f2933' } },
+            y:  { ticks:{ color:'#8a9bb0', font:{ family:'JetBrains Mono', size:10 } }, grid:{ color:'#1f2933' }, position:'left' },
+            y1: { ticks:{ color:'#8a9bb0', font:{ family:'JetBrains Mono', size:10 } }, grid:{ display:false }, position:'right' },
+          },
+        },
+      });
+    }
+
+    function closeDrillPanel() {
+      document.getElementById('drill-panel').style.display = 'none';
+      document.querySelectorAll('.holding-card').forEach(c => c.classList.remove('active'));
+      activeTicker = null;
+      if (miniChart) { miniChart.destroy(); miniChart = null; }
+    }
+
+    function switchTab(index) {
+      // Only 2 tabs now: 0 = Analysis, 1 = Key Metrics
+      document.querySelectorAll('.tab-content').forEach((el, i) => {
+        el.style.display = i === index ? 'block' : 'none';
+      });
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+      });
+      if (index === 1) {
+        const ticker = document.getElementById('drill-panel').dataset.activeTicker;
+        if (ticker) renderProxyChart(ticker);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DATA — injected from Yahoo Finance (Jun 2026 pull)
+    //   view_1d: 5-min | view_5d: 30-min | view_1m/1y: daily
+    //   DOL.TO key maps to DOL in PORTFOLIO.
+    // ═══════════════════════════════════════════════════════════════════
+    const TIMEFRAME_DATA = {
+      view_1d: {
+        timestamps: ["09:30", "09:35", "09:40", "09:45", "09:50", "09:55", "10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00", "11:05", "11:10", "11:15", "11:20", "11:25", "11:30", "11:35", "11:40", "11:45", "11:50", "11:55", "12:00", "12:05", "12:10", "12:15", "12:20", "12:25", "12:35", "12:40", "12:45", "12:50", "12:55", "13:00", "13:05", "13:10", "13:15", "13:20", "13:25", "13:30", "13:35", "13:40", "13:45", "13:50", "13:55", "14:00", "14:05", "14:10", "14:15", "14:20", "14:25", "14:30", "14:35", "14:40", "14:45", "14:50", "14:55", "15:00", "15:05", "15:10", "15:15", "15:20", "15:25", "15:30", "15:35", "15:40", "15:45", "15:50", "15:55"],
+        fund: [1000000.0, 1000530.58, 1000509.91, 1000627.06, 1000847.55, 1000516.8, 1000385.88, 1000778.64, 1000847.55, 1000330.75, 1000192.94, 1000082.69, 1000275.62, 1000068.9, 1000062.01, 1000151.6, 999931.09, 999979.33, 1000048.23, 1000117.14, 1000172.27, 1000268.74, 1000254.95, 1000351.42, 1000558.15, 1000675.29, 1000551.26, 1000585.7, 1000692.51, 1000764.87, 1000751.08, 1000785.54, 1000847.55, 1000785.54, 1000840.67, 1000833.77, 1000764.87, 1000737.3, 1000702.84, 1000578.82, 1000537.47, 1000537.47, 1000468.56, 1000565.03, 1000413.44, 1000420.33, 1000420.33, 1000437.56, 1000351.42, 1000475.46, 1000544.36, 1000530.58, 1000372.09, 1000365.21, 1000441.0, 1000516.8, 1000530.58, 1000547.81, 1000757.97, 1000785.54, 1000620.16, 1000627.06, 1000585.7, 1000689.07, 1000330.75, 1000406.55, 1000268.74, 1000406.55, 1000241.17, 1000089.57, 999986.22, 999810.5, 999731.26, 999600.34, 999834.62, 999152.44, 998918.15],
+        spy:  [1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0],
+        assets: {
+          'NVDA': [210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23],
+          'MSFT': [379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05],
+          'GOOGL': [367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99],
+          'META': [577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22],
+          'JPM': [325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24],
+          'V': [327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31],
+          'ETN': [421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65],
+          'DOL.TO': [188.66, 189.43, 189.4, 189.57, 189.89, 189.41, 189.22, 189.79, 189.89, 189.14, 188.94, 188.78, 189.06, 188.76, 188.75, 188.88, 188.56, 188.63, 188.73, 188.83, 188.91, 189.05, 189.03, 189.17, 189.47, 189.64, 189.46, 189.51, 189.66, 189.77, 189.75, 189.8, 189.89, 189.8, 189.88, 189.87, 189.77, 189.73, 189.68, 189.5, 189.44, 189.44, 189.34, 189.48, 189.26, 189.27, 189.27, 189.29, 189.17, 189.35, 189.45, 189.43, 189.2, 189.19, 189.3, 189.41, 189.43, 189.46, 189.76, 189.8, 189.56, 189.57, 189.51, 189.66, 189.14, 189.25, 189.05, 189.25, 189.01, 188.79, 188.64, 188.38, 188.27, 188.08, 188.42, 187.43, 187.09],
+        },
+      },
+      view_5d: {
+        timestamps: ["Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 15", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 16", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 17", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 18", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19", "Jun 19"],
+        fund: [1000000.0, 999896.63, 1002244.8, 1003626.99, 1005953.47, 1005450.85, 1004237.46, 1005063.31, 1003692.84, 1003112.52, 1003749.75, 1001881.5, 1001902.54, 1003261.71, 1003997.16, 1006495.23, 1007691.56, 1008021.14, 1007358.29, 1007276.68, 1007554.62, 1006891.12, 1008132.91, 1008357.69, 1006782.97, 1005815.15, 1006620.95, 1006866.88, 1003780.55, 1004097.93, 1005100.1, 1005890.47, 1005211.84, 1004299.58, 1005767.85, 1001586.64, 1000657.93, 994479.37, 995354.31, 1001187.68, 1001862.79, 1003289.06, 1001593.49, 1002936.11, 1003519.51, 1003164.68, 1004461.37, 1002772.75, 1001718.44, 1001240.53, 999442.85, 998929.65, 999947.92, 999517.37, 999414.87, 999783.9, 1000193.94, 1000262.28, 999968.42, 999852.24, 999804.4, 1000187.1, 999763.4, 999421.7, 998362.42],
+        spy:  [1000000.0, 1000438.08, 1001157.8, 1002415.98, 1003743.44, 1004221.3, 1003358.42, 1003730.15, 1002502.27, 1001858.39, 1002230.12, 1001393.81, 1001778.75, 1001022.17, 999654.85, 999482.27, 999110.46, 999243.34, 1000053.07, 999216.76, 998499.97, 998407.04, 998426.97, 997955.75, 997212.29, 996057.41, 995432.73, 997836.24, 994345.02, 995592.83, 996402.56, 996601.71, 995599.48, 995141.46, 996741.07, 990581.65, 990283.0, 985052.82, 983552.79, 988623.68, 989446.7, 991398.1, 989459.99, 990615.03, 991145.88, 991132.6, 992340.55, 991623.75, 990946.73, 990794.09, 990296.29, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24, 991066.24],
+        assets: {
+          'NVDA': [208.76, 209.4, 210.36, 211.16, 212.27, 212.35, 212.33, 212.53, 211.83, 211.94, 212.29, 211.66, 212.46, 208.71, 209.07, 209.33, 209.15, 209.17, 209.29, 209.13, 209.1, 209.43, 209.45, 208.99, 208.93, 207.29, 207.19, 207.89, 206.46, 206.45, 206.41, 207.43, 207.13, 207.36, 207.78, 205.96, 205.96, 204.72, 204.68, 207.81, 209.13, 209.32, 208.88, 208.97, 209.99, 210.08, 210.06, 209.91, 210.2, 209.7, 209.85, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23, 210.23],
+          'MSFT': [398.33, 398.33, 398.14, 398.49, 400.81, 401.58, 399.22, 399.48, 399.29, 398.98, 398.68, 398.45, 399.97, 394.82, 393.1, 393.67, 393.42, 392.84, 391.85, 391.79, 391.5, 391.3, 392.12, 393.26, 393.12, 393.92, 389.8, 387.38, 384.9, 385.42, 385.38, 385.38, 384.11, 384.89, 385.75, 383.02, 381.8, 379.03, 378.87, 376.23, 377.22, 376.6, 375.17, 377.93, 378.6, 379.51, 379.7, 379.72, 377.62, 377.92, 378.03, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05, 379.05],
+          'GOOGL': [369.22, 369.11, 370.64, 372.37, 372.55, 371.04, 371.3, 371.67, 371.73, 371.45, 371.3, 369.84, 369.31, 368.12, 370.44, 374.21, 375.23, 372.85, 372.21, 370.02, 370.42, 371.09, 372.34, 373.69, 372.37, 373.28, 366.2, 366.82, 363.9, 364.12, 364.92, 365.74, 365.52, 365.16, 366.36, 365.65, 364.41, 362.52, 363.69, 360.45, 361.86, 363.26, 364.0, 365.92, 366.34, 366.42, 367.85, 368.06, 367.69, 368.38, 367.62, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99, 367.99],
+          'META': [591.88, 590.34, 594.23, 596.75, 599.82, 598.9, 596.99, 594.71, 595.14, 595.53, 594.7, 591.25, 593.49, 602.53, 593.54, 595.88, 596.89, 595.28, 596.33, 597.36, 596.17, 595.91, 598.22, 599.88, 598.8, 600.3, 585.04, 585.05, 582.15, 580.55, 580.66, 580.3, 578.32, 579.45, 580.47, 575.85, 572.69, 569.83, 567.48, 565.93, 569.9, 571.58, 572.99, 576.96, 576.03, 577.29, 577.9, 576.36, 573.53, 576.25, 574.68, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22, 577.22],
+          'JPM': [322.69, 321.61, 321.27, 320.96, 321.58, 321.74, 321.06, 321.26, 320.81, 320.1, 320.67, 320.79, 319.65, 326.05, 327.38, 328.93, 329.42, 330.0, 330.95, 331.31, 330.87, 329.69, 330.21, 330.05, 329.97, 331.18, 336.01, 336.0, 337.38, 336.65, 336.42, 336.57, 336.89, 336.33, 336.79, 335.96, 334.86, 332.01, 333.57, 334.71, 332.6, 332.21, 330.79, 330.7, 329.6, 328.92, 329.47, 328.45, 328.32, 327.82, 326.74, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24, 325.24],
+          'V': [324.57, 325.09, 325.73, 325.3, 325.94, 325.76, 326.23, 325.83, 324.45, 324.51, 324.14, 324.5, 323.97, 325.88, 327.32, 328.51, 330.28, 331.62, 330.64, 331.68, 332.05, 331.56, 332.46, 332.82, 332.38, 333.22, 336.18, 335.23, 333.92, 334.25, 333.97, 333.05, 332.84, 332.55, 332.38, 332.05, 331.74, 330.47, 330.38, 329.12, 331.27, 330.76, 328.95, 329.5, 328.96, 328.33, 329.38, 328.76, 328.42, 328.62, 328.07, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31, 327.31],
+          'ETN': [406.7, 406.38, 407.81, 409.25, 409.43, 408.65, 408.35, 410.17, 410.43, 410.72, 411.05, 410.0, 407.16, 412.45, 411.36, 411.48, 411.06, 412.43, 412.09, 411.82, 412.3, 411.8, 413.02, 411.7, 410.48, 407.62, 411.92, 414.17, 413.41, 415.22, 415.91, 417.33, 417.6, 415.55, 417.13, 414.51, 416.36, 411.69, 409.7, 423.89, 420.8, 423.86, 422.65, 421.84, 422.78, 423.47, 424.29, 424.39, 423.36, 422.28, 421.14, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65, 421.65],
+          'DOL.TO': [190.23, 190.4, 190.95, 190.56, 190.25, 190.21, 190.1, 190.29, 190.02, 189.72, 190.07, 189.5, 190.33, 189.85, 189.94, 189.02, 189.45, 189.8, 189.07, 189.42, 189.95, 189.85, 189.01, 189.09, 188.47, 187.85, 188.87, 188.62, 188.38, 188.42, 189.59, 188.86, 188.84, 188.41, 187.98, 188.13, 188.59, 188.54, 189.23, 190.39, 190.39, 190.89, 191.6, 191.02, 191.07, 190.41, 190.2, 189.1, 189.38, 189.28, 188.64, 187.92, 189.41, 188.78, 188.63, 189.17, 189.77, 189.87, 189.44, 189.27, 189.2, 189.76, 189.14, 188.64, 187.09],
+        },
+      },
+      view_1m: {
+        timestamps: ["05/19", "05/20", "05/21", "05/22", "05/25", "05/26", "05/27", "05/28", "05/29", "06/01", "06/02", "06/03", "06/04", "06/05", "06/08", "06/09", "06/10", "06/11", "06/12", "06/15", "06/16", "06/17", "06/18", "06/19"],
+        fund: [1000000.0, 1014885.79, 1015155.36, 1015484.78, 1015806.45, 1017461.54, 1010736.12, 1014670.47, 1018168.09, 1024365.9, 1018549.6, 1009434.63, 1025883.24, 1006902.64, 1004182.08, 1003481.81, 982074.02, 1003579.44, 1005653.28, 1023144.55, 1028110.01, 1018305.49, 1022888.14, 1021172.58],
+        spy:  [1000000.0, 1010248.99, 1012252.41, 1016232.13, 1016232.13, 1022978.53, 1022801.3, 1028443.67, 1031005.94, 1033813.48, 1035217.34, 1027953.03, 1031837.34, 1005206.27, 1007482.23, 1004524.82, 988687.92, 1005492.5, 1010930.45, 1028757.17, 1022624.16, 1009853.77, 1020353.21, 1020353.21],
+        assets: {
+          'NVDA': [220.35, 223.21, 219.25, 215.08, 215.08, 214.61, 212.35, 214.0, 210.89, 224.1, 222.56, 214.5, 218.66, 205.1, 208.64, 208.19, 200.42, 204.87, 205.19, 212.45, 207.41, 204.65, 210.69, 210.69],
+          'MSFT': [416.52, 420.15, 419.09, 418.57, 418.57, 416.03, 412.67, 426.99, 450.24, 460.52, 441.31, 427.34, 428.05, 416.67, 411.74, 403.41, 397.36, 390.34, 390.74, 399.76, 393.83, 378.91, 379.4, 379.4],
+          'GOOGL': [387.43, 388.68, 387.43, 382.74, 382.74, 388.65, 388.6, 389.9, 380.11, 376.15, 361.63, 358.78, 371.97, 368.31, 363.31, 364.26, 356.38, 357.77, 359.68, 369.35, 373.25, 363.79, 368.03, 368.03],
+          'META': [602.05, 604.5, 606.82, 609.69, 609.69, 611.77, 634.67, 634.7, 631.92, 599.91, 597.08, 622.4, 626.99, 592.45, 584.85, 584.05, 570.45, 567.9, 566.45, 593.48, 600.21, 567.58, 577.22, 577.22],
+          'JPM': [295.7, 301.98, 303.0, 306.38, 306.38, 306.74, 299.28, 296.73, 299.31, 296.58, 300.96, 300.85, 310.89, 312.37, 311.11, 312.7, 309.14, 313.49, 320.72, 319.4, 331.14, 333.46, 325.22, 325.22],
+          'V': [329.91, 330.75, 331.12, 328.88, 328.88, 326.48, 327.61, 324.95, 326.36, 322.77, 317.32, 312.4, 320.18, 323.57, 319.67, 325.05, 322.96, 319.05, 322.39, 323.82, 333.12, 330.38, 327.24, 327.24],
+          'ETN': [371.88, 379.69, 381.51, 391.35, 391.35, 403.13, 406.37, 401.94, 400.6, 400.08, 417.62, 421.21, 418.61, 395.94, 403.14, 401.72, 375.46, 393.64, 391.39, 407.06, 407.71, 409.64, 421.77, 421.77],
+          'DOL.TO': [169.74, 175.27, 178.49, 178.81, 179.23, 175.89, 172.63, 175.25, 176.3, 176.23, 174.68, 175.09, 175.87, 181.22, 178.37, 177.88, 179.57, 195.76, 190.94, 190.17, 187.85, 189.13, 189.13, 186.89],
+        },
+      },
+      view_1y: {
+        timestamps: ["2025-06-19", "2025-06-20", "2025-06-23", "2025-06-24", "2025-06-25", "2025-06-26", "2025-06-27", "2025-06-30", "2025-07-01", "2025-07-02", "2025-07-03", "2025-07-04", "2025-07-07", "2025-07-08", "2025-07-09", "2025-07-10", "2025-07-11", "2025-07-14", "2025-07-15", "2025-07-16", "2025-07-17", "2025-07-18", "2025-07-21", "2025-07-22", "2025-07-23", "2025-07-24", "2025-07-25", "2025-07-28", "2025-07-29", "2025-07-30", "2025-07-31", "2025-08-01", "2025-08-04", "2025-08-05", "2025-08-06", "2025-08-07", "2025-08-08", "2025-08-11", "2025-08-12", "2025-08-13", "2025-08-14", "2025-08-15", "2025-08-18", "2025-08-19", "2025-08-20", "2025-08-21", "2025-08-22", "2025-08-25", "2025-08-26", "2025-08-27", "2025-08-28", "2025-08-29", "2025-09-02", "2025-09-03", "2025-09-04", "2025-09-05", "2025-09-08", "2025-09-09", "2025-09-10", "2025-09-11", "2025-09-12", "2025-09-15", "2025-09-16", "2025-09-17", "2025-09-18", "2025-09-19", "2025-09-22", "2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26", "2025-09-29", "2025-09-30", "2025-10-01", "2025-10-02", "2025-10-03", "2025-10-06", "2025-10-07", "2025-10-08", "2025-10-09", "2025-10-10", "2025-10-13", "2025-10-14", "2025-10-15", "2025-10-16", "2025-10-17", "2025-10-20", "2025-10-21", "2025-10-22", "2025-10-23", "2025-10-24", "2025-10-27", "2025-10-28", "2025-10-29", "2025-10-30", "2025-10-31", "2025-11-03", "2025-11-04", "2025-11-05", "2025-11-06", "2025-11-07", "2025-11-10", "2025-11-11", "2025-11-12", "2025-11-13", "2025-11-14", "2025-11-17", "2025-11-18", "2025-11-19", "2025-11-20", "2025-11-21", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27", "2025-11-28", "2025-12-01", "2025-12-02", "2025-12-03", "2025-12-04", "2025-12-05", "2025-12-08", "2025-12-09", "2025-12-10", "2025-12-11", "2025-12-12", "2025-12-15", "2025-12-16", "2025-12-17", "2025-12-18", "2025-12-19", "2025-12-22", "2025-12-23", "2025-12-24", "2025-12-26", "2025-12-29", "2025-12-30", "2025-12-31", "2026-01-02", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19"],
+        fund: [1000000.0, 999155.28, 1008838.11, 1026387.71, 1035811.84, 1045232.88, 1053327.56, 1059003.87, 1050213.45, 1056403.05, 1069401.41, 1069525.02, 1060087.05, 1052937.93, 1064531.51, 1066832.89, 1066918.97, 1069975.06, 1074177.99, 1076534.69, 1089432.89, 1088312.19, 1089909.76, 1082758.96, 1094668.55, 1102085.54, 1108564.52, 1110789.94, 1108024.61, 1115049.96, 1116382.4, 1097785.77, 1119771.98, 1102945.29, 1107438.67, 1102692.49, 1111310.47, 1110569.12, 1120275.95, 1113015.28, 1118141.29, 1111656.16, 1115406.7, 1101143.54, 1097233.92, 1096660.45, 1110164.42, 1111017.05, 1116708.07, 1112654.92, 1117479.58, 1109740.14, 1099244.3, 1113628.39, 1123651.12, 1108594.06, 1109858.63, 1121351.46, 1133902.52, 1139418.0, 1143623.11, 1159059.58, 1151814.2, 1147157.18, 1156319.3, 1165833.61, 1169134.71, 1155194.75, 1151604.89, 1145867.89, 1150520.51, 1154378.2, 1162074.71, 1160625.86, 1161972.68, 1161522.55, 1165153.25, 1155851.07, 1158918.94, 1160393.63, 1133270.43, 1153493.67, 1141651.34, 1150729.5, 1145374.28, 1151163.29, 1160456.53, 1149407.69, 1143653.31, 1153711.79, 1170276.96, 1189860.99, 1199982.87, 1213015.77, 1205569.87, 1201743.38, 1207427.5, 1188424.56, 1193557.6, 1178848.72, 1175968.35, 1205439.25, 1196680.04, 1199122.92, 1171033.7, 1169179.59, 1164038.6, 1149793.63, 1165124.26, 1146083.69, 1151970.52, 1172705.45, 1183332.71, 1189815.62, 1189849.99, 1192641.81, 1183176.4, 1182376.96, 1183497.8, 1194011.43, 1197686.15, 1199073.34, 1187583.95, 1196057.54, 1196309.01, 1183201.3, 1182832.81, 1179265.28, 1158280.98, 1169000.75, 1186829.06, 1198371.25, 1212444.28, 1215549.07, 1215542.21, 1209200.32, 1208812.04, 1202459.93, 1208318.35, 1210628.48, 1216684.26, 1213642.65, 1210829.45, 1214010.5, 1213470.89, 1200804.41, 1191887.77, 1193475.57, 1196170.86, 1196301.56, 1168737.47, 1174519.41, 1182176.86, 1182446.64, 1189424.76, 1194102.41, 1201679.29, 1204678.83, 1194837.59, 1200398.31, 1191971.67, 1187145.19, 1167727.38, 1194420.11, 1203356.32, 1193755.75, 1189848.36, 1173325.54, 1162675.41, 1169236.73, 1173736.43, 1169729.43, 1181390.7, 1161209.03, 1168590.15, 1184040.42, 1173379.65, 1161796.16, 1165811.35, 1154779.43, 1157611.82, 1151924.76, 1133230.82, 1149795.12, 1152969.22, 1149378.16, 1134432.79, 1129996.19, 1145353.53, 1146078.71, 1132247.39, 1124351.16, 1106607.02, 1120242.86, 1102387.29, 1111660.61, 1079708.96, 1056143.97, 1051754.88, 1093387.34, 1105419.56, 1106263.56, 1114849.61, 1121497.69, 1155295.3, 1164400.35, 1169552.1, 1181069.91, 1200604.71, 1205345.02, 1207648.1, 1225154.3, 1223514.99, 1212869.87, 1224855.23, 1217822.71, 1232501.13, 1246327.48, 1241775.14, 1241024.33, 1258028.65, 1255274.75, 1246165.26, 1243845.08, 1273257.43, 1266519.46, 1267668.26, 1268886.22, 1267415.31, 1278921.95, 1292846.72, 1274657.62, 1269083.49, 1249969.18, 1266694.64, 1264725.91, 1262020.48, 1262309.61, 1267085.8, 1259235.7, 1263346.85, 1260760.4, 1270541.9, 1259990.01, 1246765.4, 1270703.94, 1244019.86, 1241418.3, 1241266.31, 1212258.11, 1236270.09, 1239966.93, 1264522.46, 1270045.74, 1256175.73, 1264925.03, 1263382.97],
+        spy:  [1000000.0, 1000000.0, 1009877.38, 1021033.89, 1021606.07, 1029598.81, 1034714.29, 1039661.45, 1039324.79, 1044036.43, 1052264.9, 1052264.9, 1044423.45, 1043851.49, 1050110.9, 1053072.59, 1049370.5, 1051373.0, 1046880.15, 1050380.27, 1056808.11, 1056034.27, 1058036.67, 1058188.07, 1067190.48, 1067543.75, 1072053.52, 1071784.36, 1068957.35, 1067611.14, 1063606.36, 1046173.4, 1062074.99, 1056690.25, 1064784.24, 1063892.23, 1072188.2, 1070067.84, 1081459.87, 1085161.85, 1085262.79, 1082721.97, 1082486.35, 1076613.65, 1073753.0, 1069445.31, 1085868.6, 1081089.57, 1085616.06, 1088089.79, 1091943.07, 1085431.01, 1077387.69, 1083226.64, 1092279.62, 1089116.06, 1091791.56, 1094315.76, 1097479.11, 1106599.59, 1106229.39, 1112118.71, 1110587.45, 1109207.8, 1114390.46, 1119909.89, 1125208.24, 1119083.1, 1115522.66, 1110376.23, 1116737.51, 1119876.15, 1124094.43, 1127924.86, 1129224.03, 1129207.42, 1133256.96, 1129055.5, 1135788.01, 1132497.67, 1101888.67, 1118796.18, 1117429.41, 1122390.27, 1114746.54, 1121074.17, 1132733.91, 1132716.98, 1126827.98, 1133510.13, 1142773.8, 1156255.86, 1159326.9, 1159883.7, 1147127.29, 1150890.12, 1153049.94, 1139382.1, 1143330.6, 1131063.5, 1132177.0, 1149843.81, 1152476.21, 1153117.33, 1133982.61, 1133796.84, 1123233.99, 1113801.57, 1118104.39, 1101061.99, 1112029.82, 1128397.35, 1139010.97, 1146874.12, 1146874.12, 1153134.26, 1147869.66, 1149995.73, 1153977.98, 1154821.7, 1157015.16, 1153539.24, 1152543.71, 1160187.44, 1162887.24, 1150383.89, 1148645.88, 1145507.35, 1132902.65, 1141457.5, 1151803.1, 1158978.61, 1164275.71, 1168371.26, 1168252.77, 1164089.52, 1162667.92, 1154053.89, 1156169.26, 1163869.59, 1170791.3, 1167017.36, 1166898.88, 1174616.02, 1176460.68, 1174108.34, 1168337.3, 1171519.03, 1170537.41, 1170537.41, 1146709.01, 1159943.31, 1166001.99, 1166424.94, 1172348.32, 1177019.14, 1176900.66, 1174565.25, 1171062.12, 1176883.73, 1166932.73, 1161280.28, 1146776.72, 1168777.38, 1174412.91, 1171315.91, 1171045.2, 1152953.88, 1153766.14, 1155627.72, 1161449.44, 1158386.29, 1166763.57, 1154849.32, 1163243.31, 1173059.12, 1166543.42, 1160941.75, 1161601.77, 1151363.12, 1159486.4, 1153021.49, 1137908.68, 1147876.72, 1146032.06, 1144593.64, 1127213.02, 1120832.84, 1132239.41, 1135217.82, 1119377.39, 1116618.82, 1100611.31, 1112167.72, 1108434.38, 1114611.34, 1094705.79, 1076038.99, 1072441.37, 1103614.95, 1111930.13, 1112931.38, 1118192.03, 1118684.03, 1147176.51, 1153794.59, 1153031.04, 1164298.97, 1178485.81, 1187785.21, 1190704.01, 1205094.49, 1202684.62, 1194810.77, 1206910.27, 1202226.57, 1211542.99, 1213630.22, 1207724.71, 1207538.1, 1219552.67, 1222929.72, 1218449.65, 1228224.33, 1245295.91, 1241477.74, 1251727.5, 1254578.38, 1252677.76, 1259686.29, 1269630.65, 1254357.82, 1253475.37, 1245126.24, 1257887.53, 1260382.03, 1265337.28, 1265337.28, 1273737.4, 1273516.74, 1280542.19, 1283732.54, 1287228.29, 1288976.27, 1279931.29, 1284767.75, 1251608.7, 1254442.56, 1250760.2, 1231041.27, 1251965.09, 1258736.02, 1280932.54, 1273296.18, 1257395.42, 1270468.55, 1270468.55],
+        assets: {
+          'NVDA': [143.66, 143.66, 143.98, 147.7, 154.1, 154.81, 157.54, 157.78, 153.1, 157.04, 159.13, 159.13, 158.03, 159.79, 162.66, 163.88, 164.7, 163.85, 170.47, 171.14, 172.77, 172.18, 171.15, 166.81, 170.55, 173.51, 173.27, 176.51, 175.28, 179.03, 177.63, 173.49, 179.76, 178.02, 179.18, 180.53, 182.46, 181.82, 182.92, 181.35, 181.78, 180.21, 181.77, 175.41, 175.17, 174.75, 177.75, 179.57, 181.53, 181.36, 179.93, 173.95, 170.55, 170.39, 171.43, 166.8, 168.09, 170.53, 177.09, 176.94, 177.59, 177.52, 174.66, 170.07, 176.02, 176.44, 183.38, 178.2, 176.74, 177.46, 177.96, 181.62, 186.34, 187.0, 188.65, 187.38, 185.3, 184.8, 188.87, 192.32, 182.93, 188.08, 179.8, 179.6, 181.58, 182.99, 182.41, 180.93, 180.05, 181.93, 186.02, 191.25, 200.77, 206.78, 202.63, 202.23, 206.62, 198.44, 194.96, 187.84, 187.91, 198.8, 192.91, 193.55, 186.62, 189.93, 186.36, 181.13, 186.28, 180.41, 178.65, 182.32, 177.59, 180.03, 180.03, 176.77, 179.69, 181.23, 179.36, 183.16, 182.19, 185.32, 184.74, 183.56, 180.71, 174.81, 176.08, 177.5, 170.73, 173.93, 180.77, 183.47, 188.98, 188.38, 190.3, 187.99, 187.31, 186.27, 188.62, 187.89, 187.01, 188.88, 184.81, 184.63, 184.71, 185.58, 182.92, 186.82, 186.0, 186.0, 177.85, 183.1, 184.61, 187.44, 186.24, 188.29, 191.29, 192.28, 190.9, 185.38, 180.12, 173.98, 171.67, 185.18, 189.81, 188.31, 189.82, 186.71, 182.59, 184.74, 187.75, 187.67, 189.59, 191.32, 192.62, 195.32, 184.66, 176.97, 182.26, 179.83, 182.82, 183.12, 177.6, 182.43, 184.54, 185.81, 182.93, 180.04, 183.01, 181.72, 180.19, 178.35, 172.5, 175.44, 175.0, 178.47, 171.04, 167.32, 164.98, 174.2, 175.55, 177.18, 177.43, 177.89, 181.87, 183.7, 188.41, 189.09, 196.28, 198.64, 198.12, 201.45, 201.82, 199.65, 202.26, 199.41, 208.03, 216.36, 212.92, 209.01, 199.34, 198.22, 198.25, 196.27, 207.59, 211.25, 214.95, 219.18, 220.52, 225.57, 235.47, 225.06, 222.06, 220.35, 223.21, 219.25, 215.08, 215.08, 214.61, 212.35, 214.0, 210.89, 224.1, 222.56, 214.5, 218.66, 205.1, 208.64, 208.19, 200.42, 204.87, 205.19, 212.45, 207.41, 204.65, 210.69, 210.69],
+          'MSFT': [473.62, 473.62, 482.15, 486.23, 488.37, 493.51, 492.01, 493.47, 488.15, 487.2, 494.89, 494.89, 493.78, 492.68, 499.52, 497.51, 499.33, 499.03, 501.81, 501.61, 507.65, 506.01, 506.02, 501.27, 501.86, 506.83, 509.64, 508.44, 508.51, 509.17, 529.27, 519.96, 531.4, 523.57, 520.78, 516.71, 517.9, 517.64, 525.05, 516.45, 518.34, 516.05, 513.0, 505.73, 501.71, 501.07, 504.04, 501.09, 498.88, 503.55, 506.43, 503.5, 501.94, 502.17, 504.77, 491.88, 495.06, 495.27, 497.22, 497.86, 506.69, 512.12, 505.84, 506.81, 505.25, 514.67, 511.21, 506.03, 506.94, 503.84, 508.24, 511.36, 514.69, 516.44, 512.49, 514.09, 525.24, 520.68, 521.55, 519.11, 507.74, 510.81, 510.34, 510.2, 508.39, 510.35, 513.54, 514.4, 517.26, 517.28, 520.31, 528.17, 538.66, 538.14, 522.45, 514.55, 513.78, 511.09, 503.97, 493.97, 493.69, 502.82, 505.48, 507.92, 500.12, 506.97, 504.3, 490.68, 484.05, 476.31, 470.03, 471.9, 474.88, 483.35, 483.35, 489.83, 484.58, 487.83, 475.61, 478.71, 481.02, 488.84, 489.84, 476.44, 481.33, 476.41, 472.71, 474.28, 474.01, 481.83, 483.77, 482.77, 484.69, 485.86, 485.55, 484.94, 485.32, 481.48, 470.84, 470.75, 476.39, 481.33, 475.99, 477.16, 475.06, 468.58, 457.34, 454.64, 457.82, 457.82, 452.5, 442.14, 449.14, 463.88, 468.19, 478.45, 479.49, 431.58, 428.38, 421.49, 409.39, 412.35, 391.92, 399.36, 411.77, 411.44, 402.58, 400.06, 399.54, 395.1, 397.83, 397.6, 396.37, 383.64, 388.16, 399.73, 400.85, 391.89, 397.69, 403.06, 404.32, 409.79, 408.08, 408.53, 404.88, 404.0, 400.99, 394.7, 399.09, 398.55, 390.94, 388.18, 381.04, 382.17, 371.93, 370.24, 365.18, 356.0, 358.18, 369.37, 368.57, 372.65, 372.07, 371.49, 373.52, 372.26, 370.07, 383.54, 392.26, 410.33, 419.35, 421.88, 417.17, 423.24, 431.98, 414.85, 423.7, 423.9, 428.32, 423.54, 406.9, 413.54, 412.73, 410.49, 413.07, 419.86, 414.22, 411.77, 406.89, 404.33, 408.55, 421.01, 422.62, 416.52, 420.15, 419.09, 418.57, 418.57, 416.03, 412.67, 426.99, 450.24, 460.52, 441.31, 427.34, 428.05, 416.67, 411.74, 403.41, 397.36, 390.34, 390.74, 399.76, 393.83, 378.91, 379.4, 379.4],
+          'GOOGL': [166.17, 166.17, 164.72, 166.3, 170.19, 173.05, 178.02, 175.73, 175.34, 178.13, 179.02, 179.02, 176.29, 173.86, 176.12, 177.11, 179.68, 181.04, 181.48, 182.45, 183.06, 184.53, 189.56, 190.8, 189.69, 191.62, 192.63, 192.03, 195.19, 195.97, 191.35, 188.59, 194.49, 194.12, 195.53, 195.96, 200.85, 200.43, 202.76, 201.39, 202.36, 203.32, 202.92, 201.0, 198.75, 199.18, 205.5, 207.9, 206.55, 206.89, 211.04, 212.3, 210.75, 230.0, 231.64, 234.33, 233.58, 239.16, 238.7, 239.9, 240.33, 251.12, 250.67, 249.04, 251.54, 254.22, 252.04, 251.17, 246.66, 245.31, 246.06, 243.57, 242.63, 244.42, 245.21, 244.87, 249.94, 245.28, 244.14, 241.06, 236.11, 243.67, 244.97, 250.54, 250.97, 252.81, 256.05, 249.97, 251.2, 252.59, 259.41, 268.74, 266.95, 274.03, 280.93, 280.64, 283.17, 277.0, 283.75, 284.19, 278.29, 289.53, 290.74, 286.15, 278.03, 275.87, 284.46, 283.72, 292.24, 288.88, 299.07, 317.96, 322.81, 319.33, 319.33, 319.55, 314.28, 315.19, 319.01, 317.0, 320.64, 313.31, 316.67, 319.79, 312.02, 308.89, 307.82, 306.17, 296.33, 302.07, 306.76, 309.38, 313.94, 313.68, 313.1, 313.15, 313.44, 312.59, 314.74, 316.13, 313.93, 321.56, 325.02, 328.14, 331.43, 335.53, 335.4, 332.35, 329.57, 329.57, 321.58, 327.95, 330.11, 327.5, 332.83, 334.12, 335.57, 337.81, 337.56, 343.24, 339.27, 332.61, 330.82, 322.44, 323.9, 318.17, 310.56, 308.6, 305.32, 301.63, 302.94, 302.46, 314.57, 311.09, 310.5, 312.49, 306.98, 311.35, 306.12, 303.19, 302.74, 300.49, 298.13, 306.18, 306.86, 308.52, 303.37, 302.1, 305.38, 310.73, 307.51, 306.95, 300.82, 301.88, 290.27, 290.76, 280.75, 274.18, 273.34, 287.39, 297.21, 295.59, 299.81, 305.28, 317.13, 318.3, 317.05, 321.12, 332.71, 336.92, 335.82, 341.48, 337.22, 332.09, 339.12, 338.69, 344.19, 350.13, 349.57, 349.73, 384.57, 385.46, 383.02, 388.2, 397.8, 397.75, 400.56, 388.41, 387.12, 402.38, 400.83, 396.54, 396.7, 387.43, 388.68, 387.43, 382.74, 382.74, 388.65, 388.6, 389.9, 380.11, 376.15, 361.63, 358.78, 371.97, 368.31, 363.31, 364.26, 356.38, 357.77, 359.68, 369.35, 373.25, 363.79, 368.03, 368.03],
+          'META': [680.12, 680.12, 696.25, 709.87, 706.36, 723.72, 731.23, 735.68, 716.87, 711.24, 716.66, 716.66, 716.0, 718.32, 730.39, 724.86, 715.17, 718.56, 708.07, 700.61, 699.12, 701.98, 710.64, 702.51, 711.25, 712.46, 710.35, 715.29, 697.71, 692.94, 770.91, 747.56, 773.83, 760.97, 769.47, 759.34, 766.79, 763.37, 787.42, 777.53, 779.57, 782.66, 764.86, 749.02, 745.28, 736.69, 752.32, 750.84, 751.64, 744.94, 748.66, 736.29, 732.71, 734.64, 746.2, 749.99, 749.84, 763.2, 749.52, 748.45, 753.12, 762.2, 776.46, 773.19, 777.7, 775.84, 763.18, 753.44, 758.69, 746.97, 741.82, 741.47, 732.47, 715.48, 725.16, 708.72, 713.8, 711.23, 715.98, 731.61, 703.47, 713.84, 706.81, 715.69, 710.22, 715.06, 730.27, 731.37, 731.51, 732.1, 736.44, 748.87, 749.49, 749.72, 664.74, 646.67, 636.06, 625.69, 634.3, 617.33, 620.1, 630.12, 625.45, 607.43, 608.31, 607.88, 600.45, 596.14, 588.79, 587.62, 592.71, 611.46, 634.57, 631.97, 631.97, 646.27, 639.21, 645.42, 637.94, 659.81, 671.67, 665.07, 655.26, 648.44, 651.02, 642.56, 646.36, 655.98, 648.34, 663.27, 657.6, 660.32, 663.76, 666.36, 662.11, 657.52, 664.76, 658.91, 649.25, 657.62, 659.44, 647.53, 644.91, 651.9, 640.83, 629.97, 614.42, 619.69, 619.15, 619.15, 603.04, 611.87, 646.48, 657.59, 671.16, 671.77, 667.54, 737.0, 715.22, 705.15, 690.47, 667.8, 669.02, 660.28, 676.01, 669.53, 667.5, 648.65, 638.63, 638.15, 642.07, 643.63, 654.49, 636.12, 638.16, 652.53, 655.84, 647.03, 652.4, 653.91, 666.54, 659.39, 643.71, 646.24, 652.91, 653.69, 637.04, 612.62, 626.87, 622.08, 615.11, 606.14, 593.11, 603.5, 592.37, 594.34, 547.03, 525.23, 535.88, 571.6, 578.69, 573.93, 572.49, 574.52, 611.85, 627.81, 629.28, 633.94, 661.88, 670.96, 676.24, 687.91, 670.29, 668.22, 674.1, 658.54, 674.4, 677.99, 670.72, 668.5, 611.34, 608.19, 609.84, 604.4, 612.31, 616.24, 609.07, 598.31, 602.44, 616.06, 617.86, 613.66, 610.64, 602.05, 604.5, 606.82, 609.69, 609.69, 611.77, 634.67, 634.7, 631.92, 599.91, 597.08, 622.4, 626.99, 592.45, 584.85, 584.05, 570.45, 567.9, 566.45, 593.48, 600.21, 567.58, 577.22, 577.22],
+          'JPM': [269.75, 269.75, 272.96, 275.89, 278.64, 283.24, 281.63, 284.38, 284.87, 286.43, 291.75, 291.75, 287.78, 278.72, 279.1, 284.05, 282.74, 284.56, 282.44, 281.72, 285.74, 287.09, 286.79, 287.25, 292.5, 292.29, 294.33, 294.0, 292.78, 295.33, 291.99, 285.22, 290.04, 287.19, 287.17, 282.82, 284.62, 285.4, 288.65, 286.36, 289.94, 286.32, 287.35, 286.49, 288.05, 287.29, 291.99, 290.67, 294.29, 294.98, 296.75, 297.09, 295.4, 295.21, 299.46, 290.16, 288.71, 293.58, 296.23, 301.17, 302.51, 304.47, 304.75, 307.28, 308.73, 310.26, 307.96, 308.25, 308.92, 308.95, 311.52, 311.16, 310.9, 306.25, 303.14, 305.58, 306.22, 304.75, 301.12, 302.61, 298.01, 305.03, 299.19, 302.77, 295.69, 294.72, 299.47, 294.25, 291.3, 291.72, 297.57, 301.24, 302.44, 302.59, 306.48, 308.15, 306.39, 306.29, 308.7, 310.42, 311.21, 313.86, 312.6, 317.35, 306.52, 300.71, 297.5, 296.55, 300.37, 295.53, 295.17, 295.15, 300.1, 304.7, 304.7, 310.09, 305.97, 304.94, 309.15, 313.08, 312.03, 312.2, 297.64, 307.15, 314.35, 315.48, 316.96, 312.53, 311.97, 310.01, 314.18, 320.0, 322.81, 326.02, 324.78, 320.66, 320.33, 319.14, 322.37, 330.85, 332.91, 325.33, 328.11, 327.51, 322.84, 309.32, 306.3, 307.69, 310.88, 310.88, 301.2, 300.5, 302.08, 296.2, 299.51, 298.78, 299.24, 304.86, 304.33, 306.57, 313.25, 315.65, 308.58, 320.76, 320.46, 316.66, 309.24, 301.1, 301.01, 305.57, 307.21, 306.48, 309.21, 296.15, 295.79, 301.76, 304.57, 298.77, 296.04, 298.73, 297.87, 292.06, 288.01, 288.44, 287.26, 286.06, 281.45, 282.0, 284.7, 285.43, 286.27, 286.5, 285.1, 288.43, 290.91, 293.92, 290.17, 281.4, 282.33, 292.66, 293.88, 293.1, 295.45, 297.4, 307.97, 310.33, 309.87, 313.68, 311.12, 305.93, 309.95, 310.29, 316.99, 313.0, 313.02, 311.69, 308.28, 311.63, 311.45, 309.25, 313.23, 312.47, 307.65, 309.4, 314.9, 306.27, 302.1, 300.0, 304.88, 300.25, 299.91, 297.81, 300.73, 295.7, 301.98, 303.0, 306.38, 306.38, 306.74, 299.28, 296.73, 299.31, 296.58, 300.96, 300.85, 310.89, 312.37, 311.11, 312.7, 309.14, 313.49, 320.72, 319.4, 331.14, 333.46, 325.22, 325.22],
+          'V': [335.92, 335.92, 341.06, 348.87, 342.55, 343.32, 345.88, 352.27, 352.68, 351.44, 356.05, 356.05, 353.85, 351.77, 354.96, 353.09, 345.2, 347.75, 344.3, 347.16, 347.07, 346.31, 348.19, 349.1, 352.51, 351.2, 354.24, 352.68, 348.54, 348.16, 342.76, 336.69, 339.47, 334.79, 337.08, 329.49, 334.14, 333.27, 334.69, 340.46, 343.39, 342.37, 340.65, 340.36, 341.84, 341.6, 347.91, 346.7, 349.04, 348.22, 347.73, 349.64, 347.94, 348.73, 348.85, 341.13, 340.21, 341.89, 336.06, 341.4, 337.36, 336.98, 337.96, 344.09, 336.12, 339.53, 342.26, 336.64, 336.62, 332.89, 335.32, 338.09, 339.3, 345.71, 343.84, 347.71, 347.15, 350.27, 349.22, 344.93, 341.56, 341.21, 346.26, 343.58, 333.36, 339.81, 342.31, 345.1, 343.26, 343.85, 345.26, 345.7, 344.79, 339.2, 342.93, 338.66, 334.85, 338.23, 337.97, 334.91, 333.97, 332.81, 336.86, 337.48, 334.69, 328.66, 324.41, 319.86, 322.78, 322.44, 326.63, 327.94, 333.15, 332.41, 332.41, 333.06, 329.03, 328.26, 328.25, 325.75, 329.87, 325.49, 325.15, 324.39, 344.21, 346.4, 345.46, 343.69, 342.99, 344.58, 347.81, 350.64, 351.92, 353.68, 353.54, 353.15, 352.16, 349.26, 345.05, 352.34, 356.09, 354.41, 350.78, 348.33, 341.79, 326.53, 327.81, 326.4, 326.95, 326.95, 324.48, 323.94, 325.01, 324.84, 327.14, 323.92, 325.63, 330.43, 320.5, 332.46, 327.57, 328.59, 327.77, 330.21, 324.24, 327.49, 328.56, 323.51, 313.43, 318.84, 319.64, 318.27, 320.29, 305.89, 306.58, 312.34, 316.04, 319.48, 319.85, 320.17, 319.81, 319.14, 316.7, 315.32, 313.78, 308.32, 305.87, 306.5, 309.47, 307.82, 298.4, 299.09, 301.0, 303.81, 303.13, 304.28, 304.9, 294.91, 298.92, 301.61, 297.89, 300.18, 302.7, 301.92, 308.32, 307.65, 303.73, 308.75, 310.73, 315.26, 314.45, 316.36, 313.29, 309.3, 310.65, 308.24, 308.78, 309.01, 308.66, 334.17, 329.16, 327.35, 326.17, 321.36, 318.14, 320.62, 318.13, 323.19, 326.42, 320.31, 322.52, 325.75, 332.64, 329.91, 330.75, 331.12, 328.88, 328.88, 326.48, 327.61, 324.95, 326.36, 322.77, 317.32, 312.4, 320.18, 323.57, 319.67, 325.05, 322.96, 319.05, 322.39, 323.82, 333.12, 330.38, 327.24, 327.24],
+          'ETN': [327.43, 327.43, 329.13, 339.32, 338.42, 344.15, 349.18, 352.89, 350.97, 354.08, 358.06, 358.06, 354.38, 352.88, 355.65, 353.54, 356.48, 356.16, 357.96, 358.73, 376.35, 374.28, 369.37, 368.38, 375.88, 380.48, 387.67, 388.25, 385.54, 385.61, 380.31, 376.92, 380.35, 352.36, 354.05, 357.07, 359.72, 357.02, 360.18, 354.42, 352.05, 348.01, 350.46, 346.0, 343.24, 342.41, 344.62, 342.79, 349.0, 348.38, 352.29, 346.14, 340.8, 340.04, 345.23, 346.03, 346.49, 345.24, 359.14, 356.99, 362.76, 372.31, 368.0, 360.23, 368.08, 371.28, 375.06, 365.35, 369.01, 361.61, 362.44, 364.0, 371.03, 370.63, 373.52, 370.25, 376.75, 367.75, 373.46, 373.95, 365.91, 372.14, 371.13, 378.44, 372.36, 370.09, 374.44, 370.25, 357.5, 369.2, 373.06, 376.48, 372.78, 384.42, 379.8, 378.28, 383.25, 374.47, 383.18, 375.19, 371.58, 377.35, 365.76, 367.24, 352.0, 350.33, 340.74, 336.31, 343.63, 326.27, 329.77, 328.5, 334.68, 339.69, 339.69, 343.86, 337.72, 331.16, 333.6, 336.95, 335.68, 341.38, 339.76, 351.38, 348.31, 330.04, 331.26, 328.0, 313.97, 314.1, 315.94, 318.51, 320.92, 321.77, 320.28, 319.57, 318.98, 316.64, 325.39, 320.37, 331.02, 320.78, 318.7, 322.61, 327.17, 330.43, 329.2, 331.51, 341.74, 341.74, 335.61, 335.98, 332.08, 329.28, 330.33, 339.19, 345.29, 352.29, 349.36, 357.34, 360.41, 362.86, 352.59, 371.63, 374.85, 375.26, 393.77, 388.04, 386.97, 389.2, 378.15, 375.11, 371.19, 359.93, 372.37, 371.34, 372.4, 373.72, 375.19, 353.48, 352.38, 352.71, 345.71, 351.8, 360.06, 354.81, 347.68, 354.42, 360.05, 362.95, 359.55, 359.24, 355.82, 358.75, 373.07, 373.97, 356.12, 356.38, 342.58, 356.68, 364.55, 360.1, 362.89, 367.83, 384.52, 399.34, 401.89, 402.25, 400.79, 393.97, 391.65, 405.09, 406.45, 408.57, 412.73, 423.33, 422.75, 415.62, 411.93, 409.64, 431.82, 424.38, 421.28, 409.73, 420.23, 398.05, 401.51, 419.0, 401.53, 406.94, 408.1, 399.44, 381.87, 371.88, 379.69, 381.51, 391.35, 391.35, 403.13, 406.37, 401.94, 400.6, 400.08, 417.62, 421.21, 418.61, 395.94, 403.14, 401.72, 375.46, 393.64, 391.39, 407.06, 407.71, 409.64, 421.77, 421.77],
+          'DOL.TO': [188.84, 187.61, 191.37, 194.05, 192.63, 190.28, 189.74, 191.41, 191.41, 188.93, 190.33, 190.51, 189.01, 189.26, 191.75, 190.15, 189.72, 191.15, 188.22, 189.43, 189.21, 187.4, 187.39, 185.46, 185.49, 185.52, 186.25, 185.15, 186.29, 187.0, 189.03, 189.32, 189.32, 192.35, 193.65, 192.69, 190.27, 192.21, 191.06, 191.78, 192.89, 191.96, 196.56, 196.54, 194.74, 196.66, 193.0, 192.7, 191.72, 184.73, 184.71, 186.92, 185.41, 186.34, 188.05, 188.09, 188.97, 189.06, 189.65, 190.32, 188.43, 189.75, 187.0, 188.71, 187.06, 189.31, 186.28, 186.08, 184.58, 184.34, 184.26, 183.42, 183.2, 181.46, 182.63, 183.24, 178.24, 177.39, 176.35, 175.09, 174.67, 174.67, 175.58, 175.98, 180.51, 182.75, 182.78, 181.58, 182.98, 185.91, 185.55, 185.24, 182.67, 180.08, 180.87, 182.09, 182.38, 180.71, 181.77, 181.49, 184.71, 187.3, 188.65, 191.03, 193.83, 194.69, 196.34, 196.19, 194.82, 198.1, 197.44, 198.89, 203.18, 202.17, 202.22, 199.71, 198.4, 196.65, 197.18, 199.84, 200.86, 201.69, 199.07, 200.21, 197.25, 201.98, 199.58, 199.1, 199.84, 200.67, 203.14, 204.05, 204.44, 205.05, 205.05, 205.23, 205.69, 204.89, 205.92, 199.06, 200.0, 197.76, 199.11, 199.17, 201.94, 199.98, 200.73, 197.93, 196.1, 196.29, 196.55, 192.88, 192.85, 192.09, 190.73, 186.23, 186.17, 185.14, 183.37, 186.87, 187.52, 195.17, 193.26, 192.14, 190.57, 188.29, 188.76, 188.65, 189.99, 193.19, 195.61, 193.31, 191.96, 195.55, 196.23, 198.08, 200.89, 200.68, 202.06, 199.82, 199.08, 197.47, 193.5, 197.3, 195.66, 193.16, 194.27, 194.62, 198.2, 194.98, 189.47, 183.35, 180.51, 186.45, 168.54, 171.89, 168.72, 166.64, 167.9, 170.61, 171.18, 172.47, 175.48, 174.32, 176.95, 174.55, 176.7, 176.28, 176.48, 174.26, 173.24, 176.51, 175.31, 171.63, 170.51, 170.38, 169.72, 169.07, 170.4, 170.31, 173.6, 174.0, 170.49, 172.93, 174.51, 175.12, 173.83, 173.77, 174.95, 170.97, 172.84, 170.03, 170.03, 169.74, 175.27, 178.49, 178.81, 179.23, 175.89, 172.63, 175.25, 176.3, 176.23, 174.68, 175.09, 175.87, 181.22, 178.37, 177.88, 179.57, 195.76, 190.94, 190.17, 187.85, 189.13, 189.13, 186.89],
+        },
+      },
+    };
+    // ── Global UI state ───────────────────────────────────────────────────
+    let activeTimeframe       = 'view_1y';
+    let activeTicker          = null;
+    let backtestChart         = null;
+    let microVarianceInterval = null;
+    let miniChart             = null;
+
+    const ASSET_KEY_MAP = { DOL: 'DOL.TO' };
+    function getAssetKey(t) { return ASSET_KEY_MAP[t] || t; }
+
+    const TF_META = {
+      view_1d: { title: "Last Session (Jun 19)", sub: 'US markets closed — showing prior close' },
+      view_5d: { title: '5-Day Performance',    sub: '30-minute intervals' },
+      view_1m: { title: '1-Month Performance',  sub: 'Daily closes · past month' },
+      view_1y: { title: '12-Month Performance', sub: "$1M Starting AUM · Jun '25 – Jun '26" },
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 11. 12-MONTH BACKTEST CHART
+    //     $1M AUM growth for AYLP Fund vs. SPY benchmark.
+    //     13 monthly data points: Jun 2025 → Jun 2026 (real data via Yahoo Finance).
+    //     Crosshair: custom afterDraw plugin draws a dashed vertical rule.
+    //     Tooltip: mode:'index', intersect:false — shows both series on hover.
+    // ═══════════════════════════════════════════════════════════════════
+    function renderBacktestChart(tf) {
+      if (microVarianceInterval) { clearInterval(microVarianceInterval); microVarianceInterval = null; }
+
+      const canvas = document.getElementById('backtest-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (backtestChart) { backtestChart.destroy(); backtestChart = null; }
+
+      const tfData   = TIMEFRAME_DATA[tf];
+      const labels   = [...tfData.timestamps];
+      const fundData = [...tfData.fund];
+      const spyData  = [...tfData.spy];
+
+      // Update legend return labels
+      const fundRet = (fundData[fundData.length-1] - fundData[0]) / fundData[0] * 100;
+      const spyRet  = (spyData[spyData.length-1]  - spyData[0])  / spyData[0]  * 100;
+      const retEl   = document.getElementById('legend-bqm-ret');
+      const spyEl   = document.getElementById('legend-spy-ret');
+      if (retEl) retEl.textContent = (fundRet >= 0 ? '+' : '') + fundRet.toFixed(2) + '%';
+      if (spyEl) spyEl.textContent = (spyRet  >= 0 ? '+' : '') + spyRet.toFixed(2)  + '%';
+
+      // Update chart title / subtitle
+      const meta    = TF_META[tf] || {};
+      const titleEl = document.getElementById('chart-title');
+      const subEl   = document.getElementById('chart-subtitle');
+      if (titleEl) titleEl.textContent = meta.title || '';
+      if (subEl)   subEl.textContent   = meta.sub   || '';
+
+      const h = canvas.parentElement.clientHeight || 280;
+      const bqmGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bqmGrad.addColorStop(0, 'rgba(34,197,94,0.22)');
+      bqmGrad.addColorStop(1, 'rgba(34,197,94,0.01)');
+      const spyGrad = ctx.createLinearGradient(0, 0, 0, h);
+      spyGrad.addColorStop(0, 'rgba(74,85,104,0.14)');
+      spyGrad.addColorStop(1, 'rgba(74,85,104,0.01)');
+
+      // Grey-out overlay: dims after 4pm ET on 1D view
+      const afterHoursPlugin = {
+        id: 'afterHours',
+        beforeDraw(chart) {
+          if (tf !== 'view_1d') return;
+          const labels = chart.data.labels;
+          const cutIdx = labels.findIndex(l => l >= '16:00');
+          if (cutIdx < 0) return;
+          const { ctx: c, chartArea: { top, bottom, right } } = chart;
+          const xPx = chart.scales.x.getPixelForValue(cutIdx);
+          c.save();
+          c.fillStyle = 'rgba(0,0,0,0.38)';
+          c.fillRect(xPx, top, right - xPx, bottom - top);
+          // "After Hours" label
+          c.font = '500 9px JetBrains Mono, monospace';
+          c.fillStyle = 'rgba(138,155,176,0.55)';
+          c.textAlign = 'center';
+          c.fillText('AFTER HOURS', xPx + (right - xPx) / 2, top + 14);
+          c.restore();
+        }
+      };
+
+      const crosshairPlugin = {
+        id: 'backtestCrosshair',
+        afterDraw(chart) {
+          const active = chart.tooltip._active;
+          if (!active || !active.length) return;
+          const { ctx: c, chartArea: { top, bottom } } = chart;
+          const x = active[0].element.x;
+          c.save(); c.beginPath();
+          c.moveTo(x, top); c.lineTo(x, bottom);
+          c.lineWidth = 1; c.strokeStyle = 'rgba(232,234,237,0.14)';
+          c.setLineDash([4, 4]); c.stroke(); c.restore();
+        }
+      };
+
+      backtestChart = new Chart(ctx, {
+        type: 'line',
+        plugins: [crosshairPlugin, afterHoursPlugin],
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'AYLP Fund', data: fundData,
+              borderColor: '#22c55e', borderWidth: 2,
+              backgroundColor: bqmGrad, fill: true, tension: 0,
+              pointRadius: 0, pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#22c55e',
+              pointHoverBorderColor: '#0a0d0f', pointHoverBorderWidth: 2.5,
+              order: 1,
+            },
+            {
+              label: 'SPY', data: spyData,
+              borderColor: '#4a5568', borderWidth: 1.5, borderDash: [5, 4],
+              backgroundColor: spyGrad, fill: true, tension: 0,
+              pointRadius: 0, pointHoverRadius: 4,
+              pointHoverBackgroundColor: '#64748b',
+              pointHoverBorderColor: '#0a0d0f', pointHoverBorderWidth: 2,
+              order: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              mode: 'index', intersect: false,
+              backgroundColor: 'rgba(17,21,24,0.97)', borderColor: '#1f2933', borderWidth: 1,
+              titleColor: '#8a9bb0', bodyColor: '#e8eaed',
+              titleFont: { family: 'JetBrains Mono', size: 10, weight: '500' },
+              bodyFont:  { family: 'JetBrains Mono', size: 11, weight: '600' },
+              padding: { x: 14, y: 11 }, boxPadding: 5,
+              callbacks: {
+                title(items) { return items[0]?.label ?? ''; },
+                label(item) {
+                  const val  = item.parsed.y;
+                  const pct  = (val - 1_000_000) / 1_000_000 * 100;
+                  const fVal = val.toLocaleString('en-US',
+                    { style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2 });
+                  const fPct = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+                  const name = item.dataset.label.padEnd(9);
+                  return `  ${name} ${fVal}  (${fPct})`;
+                },
+                labelColor(item) {
+                  const c = item.datasetIndex === 0 ? '#22c55e' : '#4a5568';
+                  return { borderColor: c, backgroundColor: c, borderRadius: 2 };
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              border: { display: false },
+              grid:   { color: 'rgba(31,41,51,0.55)', drawTicks: false },
+              afterBuildTicks(scale) {
+                // 5D: replace Chart.js sampled ticks with exactly 1 per unique day
+                if (tf !== 'view_5d') return;
+                const allLabels = scale.chart.data.labels;
+                const seen = new Set();
+                scale.ticks = allLabels.reduce((acc, lbl, i) => {
+                  if (!seen.has(lbl)) { seen.add(lbl); acc.push({ value: i }); }
+                  return acc;
+                }, []);
+              },
+              ticks: {
+                color: '#4a5568', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 0, padding: 7,
+                maxTicksLimit: 12,
+              },
+            },
+            y: {
+              border: { display: false },
+              grid:   { color: 'rgba(31,41,51,0.55)', drawTicks: false },
+              ticks:  {
+                color: '#4a5568', font: { family: 'JetBrains Mono', size: 10 }, padding: 10,
+                callback(v) {
+                  if (v >= 1_000_000) return '$' + (v / 1_000_000).toFixed(2) + 'M';
+                  return '$' + (v / 1_000).toFixed(0) + 'K';
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Live micro-variance for 1D / 5D views
+      if (tf === 'view_1d' || tf === 'view_5d') {
+        microVarianceInterval = setInterval(() => {
+          if (!backtestChart) return;
+          const fd = backtestChart.data.datasets[0].data;
+          const sd = backtestChart.data.datasets[1].data;
+          fd[fd.length - 1] = fd[fd.length - 1] * (1 + (Math.random() * 2 - 1) * 0.0001);
+          sd[sd.length - 1] = sd[sd.length - 1] * (1 + (Math.random() * 2 - 1) * 0.0001);
+          backtestChart.update('none');
+        }, 500);
+      }
+    }
+
+    function switchTimeframe(tf) {
+      activeTimeframe = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        btn.classList.toggle('tf-active', btn.dataset.tf === tf);
+      });
+      renderBacktestChart(tf);
+      if (activeTicker) renderMiniChart(activeTicker);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  MINI CHART  (Drill-Down Vault — right panel price history)
+    // ═══════════════════════════════════════════════════════════════════
+    function renderMiniChart(ticker) {
+      const key    = getAssetKey(ticker);
+      const tfData = TIMEFRAME_DATA[activeTimeframe];
+      const prices = tfData && tfData.assets[key];
+      const canvas = document.getElementById('mini-price-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (miniChart) { miniChart.destroy(); miniChart = null; }
+      if (!prices || prices.length === 0) return;
+
+      const ret   = (prices[prices.length - 1] - prices[0]) / prices[0] * 100;
+      const retEl = document.getElementById('dp-mini-ret');
+      if (retEl) {
+        retEl.textContent = (ret >= 0 ? '+' : '') + ret.toFixed(2) + '%';
+        retEl.style.color = ret >= 0 ? 'var(--green-primary)' : 'var(--red-accent)';
+      }
+
+      const color = ret >= 0 ? '#22c55e' : '#ef4444';
+      const h     = canvas.parentElement.clientHeight || 220;
+      const grad  = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, ret >= 0 ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+      miniChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: tfData.timestamps,
+          datasets: [{
+            data: prices,
+            borderColor: color, borderWidth: 1.5,
+            backgroundColor: grad, fill: true, tension: 0,
+            pointRadius: 0, pointHoverRadius: 4,
+            pointHoverBackgroundColor: color,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(17,21,24,0.95)', borderColor: '#1f2933', borderWidth: 1,
+              titleColor: '#8a9bb0', bodyColor: '#e8eaed',
+              titleFont: { family: 'JetBrains Mono', size: 9 },
+              bodyFont:  { family: 'JetBrains Mono', size: 10, weight: '600' },
+              padding: { x: 10, y: 8 },
+              callbacks: {
+                label(item) { return '  $' + item.parsed.y.toFixed(2); }
+              }
+            }
+          },
+          scales: {
+            x: {
+              border: { display: false },
+              grid: { display: false },
+              ticks: { color: '#4a5568', font: { family:'JetBrains Mono', size:9 }, maxTicksLimit: 6, maxRotation: 0, padding: 5 },
+            },
+            y: {
+              border: { display: false },
+              grid: { color: 'rgba(31,41,51,0.4)', drawTicks: false },
+              ticks: { color: '#4a5568', font: { family:'JetBrains Mono', size:9 }, padding: 8,
+                callback(v) { return '$' + v.toFixed(0); }
+              },
+              position: 'right',
+            }
+          }
+        }
+      });
+    }
+
+    // ═════════════════════════�
+    // ═══════════════════════════════════════════════════════════════════
+    //  ALLOCATION DONUT — three-view segmented control
+    //
+    //  Views:
+    //    'holdings' → one slice per ticker, shades within sector families
+    //    'sector'   → one slice per GICS sector, solid family color
+    //    'currency' → USD vs CAD (TSX-listed = CAD; NYSE/Nasdaq = USD)
+    //
+    //  Color system:
+    //    Each sector owns a hue family (solid + shade array). Individual
+    //    holdings use progressive shades; sector view collapses to solid.
+    //    Green family maps to Financials (matches site --green-primary).
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ── Sector color families ────────────────────────────────────────
+    const ALLOC_SECTOR_PALETTE = {
+      'Technology':             { solid: '#3b82f6', shades: ['#1d4ed8', '#3b82f6']  },
+      'Financials':             { solid: '#22c55e', shades: ['#15803d', '#22c55e']  },
+      'Consumer Discretionary': { solid: '#f43f5e', shades: ['#f43f5e']             },
+      'Communication Services': { solid: '#a855f7', shades: ['#7c3aed', '#a855f7'] },
+      'Industrials':            { solid: '#f59e0b', shades: ['#f59e0b']             },
+    };
+    // Precompute per-ticker shade (sector-order of first appearance)
+    const ALLOC_HOLDING_COLORS = (() => {
+      const counters = {};
+      return HOLDINGS_DATA.reduce((acc, h) => {
+        const pal = ALLOC_SECTOR_PALETTE[h.sector];
+        if (!pal) { acc[h.ticker] = '#64748b'; return acc; }
+        const i = counters[h.sector] ?? 0;
+        acc[h.ticker] = pal.shades[i % pal.shades.length];
+        counters[h.sector] = i + 1;
+        return acc;
+      }, {});
+    })();
+
+    // ── Slice builder — one function, three views ────────────────────
+    const ALLOC_AUM = 1_000_000;
+    const fmtAllocUSD = v =>
+      new Intl.NumberFormat('en-US', {
+        style: 'currency', currency: 'USD', maximumFractionDigits: 0,
+      }).format(v);
+
+    function buildAllocSlices(view) {
+      if (view === 'holdings') {
+        return HOLDINGS_DATA.map(h => ({
+          label:    h.ticker,
+          sublabel: h.name,
+          value:    ALLOC_AUM * h.weight / 100,
+          pct:      h.weight,
+          color:    ALLOC_HOLDING_COLORS[h.ticker],
+          sector:   h.sector,
+        }));
+      }
+
+      if (view === 'sector') {
+        const agg = {};
+        HOLDINGS_DATA.forEach(h => { agg[h.sector] = (agg[h.sector] ?? 0) + h.weight; });
+        return Object.keys(ALLOC_SECTOR_PALETTE)
+          .filter(s => s in agg)
+          .map(s => {
+            const count = HOLDINGS_DATA.filter(h => h.sector === s).length;
+            return {
+              label:    s,
+              sublabel: `${count} position${count > 1 ? 's' : ''}`,
+              value:    ALLOC_AUM * agg[s] / 100,
+              pct:      agg[s],
+              color:    ALLOC_SECTOR_PALETTE[s].solid,
+            };
+          });
+      }
+
+    }
+
+    // ── Center overlay text — reset to fund summary on mouse-out ────
+    function resetDonutCenter(view) {
+      const tickerEl = document.getElementById('donut-ticker');
+      const weightEl = document.getElementById('donut-weight');
+      const sectorEl = document.getElementById('donut-sector');
+      if (!tickerEl) return;
+      if (view === 'holdings') {
+        tickerEl.textContent = 'AYLP';
+        weightEl.textContent = fmtAllocUSD(ALLOC_AUM);
+        sectorEl.textContent = `${HOLDINGS_DATA.length} Holdings`;
+      } else {
+        const sectors = new Set(HOLDINGS_DATA.map(h => h.sector)).size;
+        tickerEl.textContent = 'AYLP';
+        weightEl.textContent = fmtAllocUSD(ALLOC_AUM);
+        sectorEl.textContent = `${sectors} Sectors`;
+      }
+    }
+
+    // ── Legend renderer ──────────────────────────────────────────────
+    function renderAllocLegend(slices) {
+      const el = document.getElementById('alloc-legend');
+      if (!el) return;
+      el.innerHTML = slices.map(s => `
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:3.5px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden;">
+            <div style="width:9px;height:9px;border-radius:2px;background:${s.color};flex-shrink:0;"></div>
+            <span style="color:var(--text-secondary);white-space:nowrap;
+                         overflow:hidden;text-overflow:ellipsis;">${s.label}</span>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:10px;white-space:nowrap;">
+            <span style="color:var(--text-primary);font-weight:600;">${s.pct}%</span>
+            <span style="color:var(--text-muted);margin-left:8px;">${fmtAllocUSD(s.value)}</span>
+          </div>
+        </div>`).join('');
+    }
+
+    // ── Chart instance ───────────────────────────────────────────────
+    let allocChart  = null;
+    let allocView   = 'holdings';
+    let allocSlices = [];
+
+    function initAllocationChart() {
+      const canvas = document.getElementById('allocation-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      allocSlices = buildAllocSlices('holdings');
+
+      allocChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: allocSlices.map(s => s.label),
+          datasets: [{
+            data:             allocSlices.map(s => s.value),
+            backgroundColor:  allocSlices.map(s => s.color),
+            borderColor:      '#0a0d0f',
+            borderWidth:      2,
+            hoverOffset:      16,
+            hoverBorderWidth: 2,
+            hoverBorderColor: 'rgba(255,255,255,0.2)',
+          }],
+        },
+        options: {
+          responsive:          true,
+          maintainAspectRatio: false,
+          animation:           { duration: 480, easing: 'easeInOutQuart' },
+          cutout: '72%',
+          plugins: {
+            legend:  { display: false },
+            tooltip: { enabled: false },
+          },
+          onHover(evt, activeElements) {
+            const tickerEl = document.getElementById('donut-ticker');
+            const weightEl = document.getElementById('donut-weight');
+            const sectorEl = document.getElementById('donut-sector');
+            if (!tickerEl) return;
+            if (activeElements.length > 0) {
+              const s = allocSlices[activeElements[0].index];
+              if (s) {
+                tickerEl.textContent = s.label;
+                // Line 2: weight + dollar value on one line
+                weightEl.textContent = `${s.pct}%  ·  ${fmtAllocUSD(s.value)}`;
+                // Line 3: sublabel (company name / position count / currency desc)
+                sectorEl.textContent = s.sublabel || '';
+              }
+            } else {
+              resetDonutCenter(allocView);
+            }
+          },
+        },
+      });
+
+      renderAllocLegend(allocSlices);
+      resetDonutCenter('holdings');
+    }
+
+    // ── View switcher (called by the segmented control buttons) ──────
+    function switchAllocView(view) {
+      if (!allocChart || allocView === view) return;
+      allocView   = view;
+      allocSlices = buildAllocSlices(view);
+
+      // Swap data + colors — Chart.js animates the transition
+      allocChart.data.labels                      = allocSlices.map(s => s.label);
+      allocChart.data.datasets[0].data            = allocSlices.map(s => s.value);
+      allocChart.data.datasets[0].backgroundColor = allocSlices.map(s => s.color);
+      allocChart.update();
+
+      // Sync tab active state
+      document.querySelectorAll('.alloc-tab').forEach(btn => {
+        btn.classList.toggle('alloc-tab-active', btn.dataset.view === view);
+      });
+
+      // Update subtitle chip
+      const sectors = new Set(HOLDINGS_DATA.map(h => h.sector)).size;
+      const subtitles = {
+        holdings: `${HOLDINGS_DATA.length} Holdings · $1,000,000 AUM`,
+        sector:   `${sectors} Sectors · $1,000,000 AUM`,
+      };
+      const subEl = document.getElementById('alloc-subtitle');
+      if (subEl) subEl.textContent = subtitles[view] ?? '';
+
+      resetDonutCenter(view);
+      renderAllocLegend(allocSlices);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  BOOT SEQUENCE
+    // ═══════════════════════════════════════════════════════════════════
+    initTicker();
+    renderHoldingCards();
+    renderBacktestChart('view_1y');
+    initAllocationChart();
+    fetchAllPrices();
+    setInterval(fetchAllPrices, 5 * 60 * 1000);
+    setInterval(() => { tickPrices(); updateCardPrices(); }, 500);
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+Ticker,Company,Exchange,Sector
+AAPL,Apple Inc.,Nasdaq,Technology
+MSFT,Microsoft Corp.,Nasdaq,Technology
+NVDA,NVIDIA Corp.,Nasdaq,Technology
+CRM,Salesforce Inc.,NYSE,Technology
+ORCL,Oracle Corp.,NYSE,Technology
+AMD,Advanced Micro Devices,Nasdaq,Technology
+AVGO,Broadcom Inc.,Nasdaq,Technology
+ADBE,Adobe Inc.,Nasdaq,Technology
+CSU,Constellation Software,TSX,Technology
+SHOP,Shopify Inc.,TSX,Technology
+OTEX,Open Text Corp.,TSX,Technology
+GOOGL,Alphabet Inc.,Nasdaq,Communication Services
+META,Meta Platforms Inc.,Nasdaq,Communication Services
+NFLX,Netflix Inc.,Nasdaq,Communication Services
+DIS,Walt Disney Co.,NYSE,Communication Services
+BCE,BCE Inc.,TSX,Communication Services
+RCI.B,Rogers Communications,TSX,Communication Services
+AMZN,Amazon.com Inc.,Nasdaq,Consumer Discretionary
+TSLA,Tesla Inc.,Nasdaq,Consumer Discretionary
+HD,Home Depot Inc.,NYSE,Consumer Discretionary
+MCD,McDonald's Corp.,NYSE,Consumer Discretionary
+NKE,Nike Inc.,NYSE,Consumer Discretionary
+QSR,Restaurant Brands Intl,TSX,Consumer Discretionary
+MG,Magna International,TSX,Consumer Discretionary
+DOO,BRP Inc.,TSX,Consumer Discretionary
+CTC.A,Canadian Tire Corp.,TSX,Consumer Discretionary
+DOL,Dollarama Inc.,TSX,Consumer Discretionary
+COST,Costco Wholesale Corp.,Nasdaq,Consumer Staples
+PG,Procter & Gamble Co.,NYSE,Consumer Staples
+KO,Coca-Cola Co.,NYSE,Consumer Staples
+PEP,PepsiCo Inc.,Nasdaq,Consumer Staples
+WMT,Walmart Inc.,NYSE,Consumer Staples
+L,Loblaw Companies Ltd.,TSX,Consumer Staples
+ATD,Alimentation Couche-Tard,TSX,Consumer Staples
+MRU,Metro Inc.,TSX,Consumer Staples
+JPM,JPMorgan Chase & Co.,NYSE,Financials
+BAC,Bank of America Corp.,NYSE,Financials
+V,Visa Inc.,NYSE,Financials
+MA,Mastercard Inc.,NYSE,Financials
+RY,Royal Bank of Canada,TSX,Financials
+TD,Toronto-Dominion Bank,TSX,Financials
+BNS,Bank of Nova Scotia,TSX,Financials
+BMO,Bank of Montreal,TSX,Financials
+CM,Canadian Imperial Bank (CIBC),TSX,Financials
+NA,National Bank of Canada,TSX,Financials
+BN,Brookfield Corp.,TSX,Financials
+SLF,Sun Life Financial,TSX,Financials
+MFC,Manulife Financial Corp.,TSX,Financials
+IFC,Intact Financial Corp.,TSX,Financials
+FFH,Fairfax Financial Holdings,TSX,Financials
+XOM,Exxon Mobil Corp.,NYSE,Energy
+CVX,Chevron Corp.,NYSE,Energy
+COP,ConocoPhillips,NYSE,Energy
+ENB,Enbridge Inc.,TSX,Energy
+CNQ,Canadian Natural Resources,TSX,Energy
+SU,Suncor Energy Inc.,TSX,Energy
+IMO,Imperial Oil Ltd.,TSX,Energy
+CVE,Cenovus Energy Inc.,TSX,Energy
+TRP,TC Energy Corp.,TSX,Energy
+PPL,Pembina Pipeline Corp.,TSX,Energy
+CCO,Cameco Corp.,TSX,Energy
+JNJ,Johnson & Johnson,NYSE,Healthcare
+UNH,UnitedHealth Group Inc.,NYSE,Healthcare
+LLY,Eli Lilly & Co.,NYSE,Healthcare
+ABBV,AbbVie Inc.,NYSE,Healthcare
+MRK,Merck & Co.,NYSE,Healthcare
+PFE,Pfizer Inc.,NYSE,Healthcare
+TMO,Thermo Fisher Scientific,NYSE,Healthcare
+ABT,Abbott Laboratories,NYSE,Healthcare
+CAT,Caterpillar Inc.,NYSE,Industrials
+UNP,Union Pacific Corp.,NYSE,Industrials
+DE,Deere & Co.,NYSE,Industrials
+ETN,Eaton Corp.,NYSE,Industrials
+CNR,Canadian National Railway,TSX,Industrials
+CP,Canadian Pacific Kansas City,TSX,Industrials
+WCN,Waste Connections Inc.,TSX,Industrials
+WSP,WSP Global Inc.,TSX,Industrials
+GFL,GFL Environmental Inc.,TSX,Industrials
+TFII,TFI International Inc.,TSX,Industrials
+TRI,Thomson Reuters Corp.,TSX,Industrials
+LIN,Linde plc,Nasdaq,Materials
+FCX,Freeport-McMoRan Inc.,NYSE,Materials
+NTR,Nutrien Ltd.,TSX,Materials
+ABX,Barrick Mining Corp.,TSX,Materials
+AEM,Agnico Eagle Mines Ltd.,TSX,Materials
+FNV,Franco-Nevada Corp.,TSX,Materials
+WPM,Wheaton Precious Metals,TSX,Materials
+TECK.B,Teck Resources Ltd.,TSX,Materials
+NEE,NextEra Energy Inc.,NYSE,Utilities
+SO,Southern Co.,NYSE,Utilities
+DUK,Duke Energy Corp.,NYSE,Utilities
+FTS,Fortis Inc.,TSX,Utilities
+EMA,Emera Inc.,TSX,Utilities
+AQN,Algonquin Power & Utilities,TSX,Utilities
+PLD,Prologis Inc.,NYSE,Real Estate
+AMT,American Tower Corp.,NYSE,Real Estate
+O,Realty Income Corp.,NYSE,Real Estate
+REI.UN,RioCan REIT,TSX,Real Estate
+CAR.UN,Canadian Apartment Props REIT,TSX,Real Estate
+GRT.UN,Granite REIT,TSX,Real Estate
